@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<!-- Tambahkan 2 baris ini: -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kas Komplek — Shafa Townhouse Allura</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -81,7 +80,7 @@
   .btn-danger { color: var(--red); border-color: rgba(153,60,29,0.4); }
   .btn-info { color: var(--blue); border-color: rgba(24,95,165,0.4); }
   .iuran-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; margin-top: 10px; }
-  .rmh-card { background: var(--bg2); border-radius: var(--radius); padding: 8px 10px; font-size: 11px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; border: 0.5px solid transparent; transition: border-color 0.15s; }
+  .rmh-card { background: var(--bg2); border-radius: var(--radius); padding: 8px 10px; font-size: 11px; display: flex; flex-direction: column; gap: 4px; border: 0.5px solid transparent; transition: border-color 0.15s; }
   .rmh-card:hover { border-color: var(--border2); }
   .rmh-no { font-weight: 600; font-size: 12px; color: var(--text); }
   .empty { text-align: center; color: var(--text3); font-size: 12px; padding: 2rem 0; }
@@ -107,9 +106,8 @@
 
 <div class="topbar">
   <div class="topbar-left">
-    <!-- Tambahkan onclick di h1 -->
-	<h1 onclick="loginAdmin()" style="cursor:pointer">Shafa Townhouse Allura <span class="tag">Kas Komplek</span></h1>
-	<p id="bulan-label"></p>
+    <h1 onclick="loginAdmin()" style="cursor:pointer" title="Klik untuk Login Admin">Shafa Townhouse Allura <span class="tag">Kas Komplek</span></h1>
+    <p id="bulan-label"></p>
   </div>
   <div class="topbar-right">
     <select id="sel-bulan" style="width:auto;font-size:12px"></select>
@@ -146,11 +144,11 @@
   </div>
   <div style="margin-bottom:12px"></div>
 
-  <div class="tabs">
+  <div class="tabs" id="main-tabs">
     <button class="tab active" onclick="showTab('transaksi')">Transaksi</button>
     <button class="tab" onclick="showTab('iuran')">Iuran warga</button>
-    <button class="tab" onclick="showTab('tambah')">+ Tambah</button>
-    <button class="tab" onclick="showTab('anggaran')">Anggaran</button>
+    <button class="tab" onclick="showTab('tambah')" style="display:none">+ Tambah</button>
+    <button class="tab" onclick="showTab('anggaran')" style="display:none">Anggaran</button>
   </div>
 
   <div id="tab-transaksi" class="sec">
@@ -175,7 +173,7 @@
   <div id="tab-iuran" class="sec" style="display:none">
     <div class="sec-hdr">
       <span>Status iuran warga — <span id="bulan-iuran" style="font-weight:400"></span></span>
-      <div class="inline-form">
+      <div class="inline-form" id="form-iuran" style="display:none">
         <select id="f-rmh"><option value="">-- pilih rumah --</option></select>
         <select id="f-status">
           <option value="lunas">Lunas</option>
@@ -264,7 +262,7 @@ let selBulan=now.getMonth(), selTahun=now.getFullYear();
 let editIdx=null;
 let pieKelChart=null, pieMainChart=null;
 
-// --- MULAI KONFIGURASI FIREBASE ---
+// --- FIREBASE CONFIGURATION ---
 const firebaseConfig = {
   apiKey: "AIzaSyAgHt0ThCc-mqir-GfGOHxqS_ORwWGa-yg",
   authDomain: "kas-shafa-allura.firebaseapp.com",
@@ -275,18 +273,16 @@ const firebaseConfig = {
   appId: "1:939143341471:web:f9bc007373b7950e9009aa"
 };
 
-// Inisialisasi Firebase
 firebase.initializeApp(firebaseConfig);
 const dbRef = firebase.database().ref('shafa_kas_data');
 
-let isAdmin = false; // Mode default: hanya viewer
+let isAdmin = false;
 
 let data = {
   transaksi:[], iuran:{},
   anggaran:{Sampah:500000,'Listrik pos':300000,'Kebersihan taman':400000,Maintenance:600000,'Gaji security':2500000}
 };
 
-// Listener Real-time Firebase (Membaca data)
 dbRef.on('value', (snapshot) => {
   const serverData = snapshot.val();
   if (serverData) {
@@ -295,10 +291,9 @@ dbRef.on('value', (snapshot) => {
     if(!data.iuran) data.iuran = {};
     if(!data.anggaran) data.anggaran = {};
   }
-  render(); // Update layar setiap ada perubahan di server
+  render();
 });
 
-// Fungsi Menyimpan Data ke Firebase
 function saveData(){
   if(!isAdmin) {
     alert("Maaf, hanya Admin yang dapat mengubah data.");
@@ -307,7 +302,6 @@ function saveData(){
   dbRef.set(data);
 }
 
-// Fungsi Login Admin
 window.loginAdmin = function() {
   if(isAdmin) { 
     isAdmin = false; 
@@ -315,8 +309,8 @@ window.loginAdmin = function() {
     render(); 
     return; 
   }
-  const pin = prompt("Masukkan PIN Admin (Bisa tanya pengurus):");
-  if(pin === "161293") { // GANTI PIN INI SESUAI KEINGINANMU
+  const pin = prompt("Masukkan PIN Admin:");
+  if(pin === "161293") {
     isAdmin = true;
     alert("Berhasil masuk! Anda sekarang bisa menambah dan mengedit transaksi.");
     render();
@@ -324,6 +318,7 @@ window.loginAdmin = function() {
     alert("PIN Salah!");
   }
 }
+// --- END FIREBASE ---
 
 function keyB(b,t){return t+'-'+b}
 function fmt(n){return 'Rp '+Math.round(n).toLocaleString('id-ID')}
@@ -368,22 +363,21 @@ function render(){
   document.getElementById('bulan-iuran').textContent=BULAN_NAMA[selBulan];
   renderProgress(txs); renderTx(txs); renderIuran(iuran); renderAnggaranList(); renderCharts(txs,masukB,keluarB);
   populateKatSelect('f-kat'); populateKatSelect('e-kat');
-}
+
+  // UPDATE TAMPILAN ADMIN / VIEWER
   const tabs = document.querySelectorAll('.tab');
   if(tabs.length >= 4) {
-    tabs[2].style.display = isAdmin ? 'inline-block' : 'none'; // Tab Tambah
-    tabs[3].style.display = isAdmin ? 'inline-block' : 'none'; // Tab Anggaran
+    tabs[2].style.display = isAdmin ? 'inline-block' : 'none';
+    tabs[3].style.display = isAdmin ? 'inline-block' : 'none';
   }
-  // TAMBAHKAN KODE INI: Sembunyikan form dropdown di tab iuran
-  const formIuran = document.querySelector('#tab-iuran .inline-form');
-  if(formIuran) {
-    formIuran.style.display = isAdmin ? 'flex' : 'none';
-  }
-  // Paksa kembali ke tab transaksi jika warga biasa mencoba buka tab admin
+  const formIuran = document.getElementById('form-iuran');
+  if(formIuran) formIuran.style.display = isAdmin ? 'flex' : 'none';
+  
   const tabTambah = document.getElementById('tab-tambah');
   if(!isAdmin && tabTambah && tabTambah.style.display !== 'none') {
     showTab('transaksi');
   }
+}
 
 function renderProgress(txs){
   const area=document.getElementById('progress-area'); area.innerHTML='';
@@ -417,33 +411,32 @@ function renderTx(txs){
       <td style="text-align:right;font-weight:600;color:${tx.jenis==='masuk'?'var(--green)':'var(--red)'}">${fmt(tx.jml)}</td>
       <td>${buktiHtml}</td>
       <td style="display:flex;gap:4px;flex-wrap:wrap">
-		${isAdmin ? `
+        ${isAdmin ? `
           <button class="btn btn-info btn-sm" onclick="bukaEdit(${gi})">Edit</button>
           <button class="btn btn-danger btn-sm" onclick="hapusTx(${gi})">Hapus</button>
-		  ` : `<span style="color:var(--text3);font-size:11px">Terkunci</span>`}
+        ` : `<span style="color:var(--text3);font-size:11px">Hanya Admin</span>`}
       </td>
     </tr>`;
   }).join('');
 }
+
 function renderIuran(iuran){
   const grid=document.getElementById('iuran-grid');
   grid.innerHTML=SEMUA_RUMAH.map(r=>{
     const status=iuran[r]||'pending';
     const cls=status==='lunas'?'bdg-lunas':status==='kosong'?'bdg-kosong':'bdg-pending';
     const lbl=status==='lunas'?'Lunas':status==='kosong'?'Kosong':'Belum bayar';
-    
-    // Logika Admin: Jika Admin bisa diklik, jika bukan tidak terjadi apa-apa
     const clickAttr = isAdmin 
       ? `onclick="quickTandai('${r}')" style="cursor:pointer;" title="Klik untuk tandai"` 
       : `style="cursor:default;"`;
-
-    return `<div class="rmh-card" ${clickAttr}>
+    return`<div class="rmh-card" ${clickAttr}>
       <div class="rmh-no">${r}</div><span class="bdg ${cls}">${lbl}</span>
     </div>`;
   }).join('');
 }
 
 function quickTandai(rmh){
+  if(!isAdmin) return;
   document.getElementById('f-rmh').value=rmh;
   showTab('iuran');
 }
@@ -473,6 +466,7 @@ function renderCharts(txs,masukB,keluarB){
 }
 
 function tambahTx(){
+  if(!isAdmin) return alert("Hanya admin!");
   const tgl=document.getElementById('f-tgl').value;
   const jenis=document.getElementById('f-jenis').value;
   const ket=document.getElementById('f-ket').value.trim();
@@ -491,6 +485,7 @@ function tambahTx(){
 }
 
 function hapusTx(gi){
+  if(!isAdmin) return;
   if(!confirm('Hapus transaksi ini?'))return;
   data.transaksi.splice(gi,1); saveData(); render();
 }
@@ -501,6 +496,7 @@ function lihatBukti(gi){
 }
 
 function bukaEdit(gi){
+  if(!isAdmin) return;
   editIdx=gi; const tx=data.transaksi[gi];
   document.getElementById('e-tgl').value=tx.tgl;
   document.getElementById('e-jenis').value=tx.jenis;
@@ -515,7 +511,7 @@ function bukaEdit(gi){
 }
 
 function simpanEdit(){
-  if(editIdx===null)return;
+  if(!isAdmin || editIdx===null)return;
   const tx=data.transaksi[editIdx];
   tx.tgl=document.getElementById('e-tgl').value;
   tx.jenis=document.getElementById('e-jenis').value;
@@ -534,7 +530,7 @@ function tutupEdit(){
 }
 
 function tandaiIuran(){
-  if(!isAdmin) return alert("Maaf, hanya Admin yang dapat mengubah data.");
+  if(!isAdmin) return alert("Hanya admin!");
   const rmh=document.getElementById('f-rmh').value;
   const status=document.getElementById('f-status').value;
   if(!rmh){alert('Pilih nomor rumah.');return}
@@ -545,6 +541,7 @@ function tandaiIuran(){
 }
 
 function tambahKategori(){
+  if(!isAdmin) return;
   const nm=document.getElementById('ang-new-name').value.trim();
   const val=parseFloat(document.getElementById('ang-new-val').value)||0;
   if(!nm){alert('Isi nama kategori.');return}
@@ -555,11 +552,13 @@ function tambahKategori(){
 }
 
 function hapusKategori(kat){
+  if(!isAdmin) return;
   if(!confirm(`Hapus kategori "${kat}"?`))return;
   delete data.anggaran[kat]; saveData(); render();
 }
 
 function simpanAnggaran(){
+  if(!isAdmin) return;
   Object.keys(data.anggaran).forEach(kat=>{
     const el=document.getElementById('ang-'+kat.replace(/[ /]/g,'_'));
     if(el) data.anggaran[kat]=parseFloat(el.value)||0;
