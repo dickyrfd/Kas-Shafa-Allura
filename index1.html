@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<!-- Tambahkan 2 baris ini: -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kas Komplek — Shafa Townhouse Allura</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f5f5f3; --bg3: #efefec;
+    --text: #1a1a1a; --text2: #6b6b68; --text3: #9b9b97;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+    --green: #0F6E56; --green-bg: #E1F5EE; --green-text: #0F6E56;
+    --red: #993C1D; --red-bg: #FAECE7; --red-text: #993C1D;
+    --blue: #185FA5; --blue-bg: #E6F1FB; --blue-text: #185FA5;
+    --purple: #534AB7; --amber-bg: #FAEEDA; --amber-text: #854F0B;
+    --radius: 8px; --radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a; --bg2: #262624; --bg3: #2e2e2b;
+      --text: #f0efea; --text2: #9b9b97; --text3: #6b6b68;
+      --border: rgba(255,255,255,0.12); --border2: rgba(255,255,255,0.22);
+      --green-bg: #085041; --green-text: #9FE1CB;
+      --red-bg: #712B13; --red-text: #F5C4B3;
+      --blue-bg: #0C447C; --blue-text: #B5D4F4;
+      --amber-bg: #633806; --amber-text: #FAC775;
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg3); color: var(--text); min-height: 100vh; }
+  .topbar { background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; position: sticky; top: 0; z-index: 10; }
+  .topbar-left h1 { font-size: 16px; font-weight: 600; color: var(--text); }
+  .topbar-left p { font-size: 12px; color: var(--text2); margin-top: 1px; }
+  .topbar-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 12px; }
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; }
+  .card .lbl { font-size: 11px; color: var(--text2); margin-bottom: 6px; }
+  .card .val { font-size: 20px; font-weight: 600; color: var(--text); }
+  .val.green { color: var(--green); } .val.red { color: var(--red); } .val.blue { color: var(--blue); } .val.purple { color: var(--purple); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  @media (max-width: 600px) { .row2 { grid-template-columns: 1fr; } }
+  .sec { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 12px; }
+  .sec-hdr { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .tab { font-size: 12px; padding: 6px 14px; border-radius: var(--radius); border: 0.5px solid var(--border); background: transparent; cursor: pointer; color: var(--text2); font-family: inherit; transition: background 0.15s; }
+  .tab:hover { background: var(--bg2); }
+  .tab.active { background: var(--bg2); color: var(--text); font-weight: 600; border-color: var(--border2); }
+  .prog-row { margin-bottom: 9px; }
+  .prog-lbl { display: flex; justify-content: space-between; font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+  .prog-bar { height: 5px; background: var(--bg2); border-radius: 99px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 99px; transition: width 0.4s; }
+  .prog-fill.over { background: var(--red) !important; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; font-weight: 600; font-size: 11px; color: var(--text2); padding: 6px 8px; border-bottom: 0.5px solid var(--border); }
+  td { padding: 8px 8px; border-bottom: 0.5px solid var(--border); color: var(--text); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg2); }
+  .bdg { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 99px; font-weight: 600; white-space: nowrap; }
+  .bdg-in { background: var(--green-bg); color: var(--green-text); }
+  .bdg-out { background: var(--red-bg); color: var(--red-text); }
+  .bdg-lunas { background: var(--green-bg); color: var(--green-text); }
+  .bdg-pending { background: var(--amber-bg); color: var(--amber-text); }
+  .bdg-kosong { background: var(--blue-bg); color: var(--blue-text); }
+  .fg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 500px) { .fg { grid-template-columns: 1fr; } }
+  .ff { display: flex; flex-direction: column; gap: 4px; }
+  .ff label { font-size: 11px; color: var(--text2); }
+  input, select, textarea { font-size: 13px; padding: 7px 10px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); font-family: inherit; width: 100%; outline: none; transition: border-color 0.15s; }
+  input:focus, select:focus, textarea:focus { border-color: var(--blue); }
+  .btn { font-size: 12px; padding: 7px 14px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: transparent; color: var(--text); cursor: pointer; font-family: inherit; transition: background 0.15s; }
+  .btn:hover { background: var(--bg2); }
+  .btn-prim { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 600; }
+  .btn-prim:hover { opacity: 0.85; background: var(--text); }
+  .btn-sm { font-size: 11px; padding: 4px 10px; }
+  .btn-danger { color: var(--red); border-color: rgba(153,60,29,0.4); }
+  .btn-info { color: var(--blue); border-color: rgba(24,95,165,0.4); }
+  .iuran-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; margin-top: 10px; }
+  .rmh-card { background: var(--bg2); border-radius: var(--radius); padding: 8px 10px; font-size: 11px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; border: 0.5px solid transparent; transition: border-color 0.15s; }
+  .rmh-card:hover { border-color: var(--border2); }
+  .rmh-no { font-weight: 600; font-size: 12px; color: var(--text); }
+  .empty { text-align: center; color: var(--text3); font-size: 12px; padding: 2rem 0; }
+  .inline-form { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .inline-form select, .inline-form input { width: auto; font-size: 12px; padding: 5px 8px; }
+  .leg { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; font-size: 11px; color: var(--text2); }
+  .leg-item { display: flex; align-items: center; gap: 4px; }
+  .leg-sq { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .ang-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .ang-row label { font-size: 12px; color: var(--text); min-width: 150px; flex-shrink: 0; }
+  .ang-row input { max-width: 160px; }
+  .img-preview { max-height: 70px; max-width: 100%; border-radius: 4px; margin-top: 4px; border: 0.5px solid var(--border); display: block; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--bg); border-radius: var(--radius-lg); border: 0.5px solid var(--border); padding: 20px; width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto; }
+  .modal-hdr { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 14px; }
+  .tag { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--blue-bg); color: var(--blue-text); font-weight: 600; margin-left: 6px; vertical-align: middle; }
+  .success-msg { font-size: 11px; color: var(--green); display: none; }
+  footer { text-align: center; font-size: 11px; color: var(--text3); padding: 24px 16px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <!-- Tambahkan onclick di h1 -->
+	<h1 onclick="loginAdmin()" style="cursor:pointer">Shafa Townhouse Allura <span class="tag">Kas Komplek</span></h1>
+	<p id="bulan-label"></p>
+  </div>
+  <div class="topbar-right">
+    <select id="sel-bulan" style="width:auto;font-size:12px"></select>
+    <button class="btn btn-prim btn-sm" onclick="exportLaporan()">Export PDF</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="cards">
+    <div class="card"><div class="lbl">Saldo total kas</div><div class="val purple" id="c-total">Rp 0</div></div>
+    <div class="card"><div class="lbl">Kas masuk bulan ini</div><div class="val green" id="c-masuk">Rp 0</div></div>
+    <div class="card"><div class="lbl">Pengeluaran bulan ini</div><div class="val red" id="c-keluar">Rp 0</div></div>
+    <div class="card"><div class="lbl">Saldo bulan ini</div><div class="val blue" id="c-saldo">Rp 0</div></div>
+    <div class="card"><div class="lbl">Iuran terkumpul</div><div class="val" id="c-iuran">0 / 0</div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr">Progres anggaran pengeluaran</div>
+    <div id="progress-area"></div>
+  </div>
+
+  <div class="row2">
+    <div class="sec" style="margin-bottom:0">
+      <div class="sec-hdr">Komposisi pengeluaran</div>
+      <div id="leg-keluar" class="leg"></div>
+      <div style="position:relative;height:200px"><canvas id="pieKeluar" role="img" aria-label="Pie chart komposisi pengeluaran">Komposisi pengeluaran per kategori.</canvas></div>
+    </div>
+    <div class="sec" style="margin-bottom:0">
+      <div class="sec-hdr">Pemasukan vs pengeluaran</div>
+      <div id="leg-main" class="leg"></div>
+      <div style="position:relative;height:200px"><canvas id="pieMain" role="img" aria-label="Pie chart pemasukan vs pengeluaran">Perbandingan pemasukan dan pengeluaran.</canvas></div>
+    </div>
+  </div>
+  <div style="margin-bottom:12px"></div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('transaksi')">Transaksi</button>
+    <button class="tab" onclick="showTab('iuran')">Iuran warga</button>
+    <button class="tab" onclick="showTab('tambah')">+ Tambah</button>
+    <button class="tab" onclick="showTab('anggaran')">Anggaran</button>
+  </div>
+
+  <div id="tab-transaksi" class="sec">
+    <div class="sec-hdr">Riwayat transaksi <span id="bulan-tx" style="font-weight:400;color:var(--text2)"></span></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th style="min-width:80px">Tanggal</th>
+          <th style="min-width:150px">Keterangan</th>
+          <th style="min-width:100px">Kategori</th>
+          <th style="min-width:60px">Jenis</th>
+          <th style="min-width:100px;text-align:right">Jumlah</th>
+          <th style="min-width:60px">Bukti</th>
+          <th style="min-width:90px">Aksi</th>
+        </tr></thead>
+        <tbody id="tx-body"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="tx-empty">Belum ada transaksi bulan ini.</div>
+  </div>
+
+  <div id="tab-iuran" class="sec" style="display:none">
+    <div class="sec-hdr">
+      <span>Status iuran warga — <span id="bulan-iuran" style="font-weight:400"></span></span>
+      <div class="inline-form">
+        <select id="f-rmh"><option value="">-- pilih rumah --</option></select>
+        <select id="f-status">
+          <option value="lunas">Lunas</option>
+          <option value="pending">Belum bayar</option>
+          <option value="kosong">Kosong</option>
+        </select>
+        <button class="btn btn-prim btn-sm" onclick="tandaiIuran()">Tandai</button>
+        <span class="success-msg" id="iuran-msg">Tersimpan!</span>
+      </div>
+    </div>
+    <div class="iuran-grid" id="iuran-grid"></div>
+  </div>
+
+  <div id="tab-tambah" class="sec" style="display:none">
+    <div class="sec-hdr">Tambah transaksi</div>
+    <div class="fg">
+      <div class="ff"><label>Tanggal</label><input type="date" id="f-tgl"></div>
+      <div class="ff"><label>Jenis</label>
+        <select id="f-jenis"><option value="masuk">Pemasukan</option><option value="keluar">Pengeluaran</option></select>
+      </div>
+      <div class="ff" style="grid-column:1/-1"><label>Keterangan</label><input type="text" id="f-ket" placeholder="Misal: Iuran A-05, Bayar PLN..."></div>
+      <div class="ff"><label>Kategori</label><select id="f-kat"></select></div>
+      <div class="ff"><label>Jumlah (Rp)</label><input type="number" id="f-jml" placeholder="150000"></div>
+      <div class="ff" style="grid-column:1/-1">
+        <label>Bukti transaksi (opsional)</label>
+        <input type="file" id="f-bukti" accept="image/*">
+        <img id="f-bukti-preview" class="img-preview" style="display:none">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
+      <button class="btn btn-prim" onclick="tambahTx()">Simpan transaksi</button>
+      <span class="success-msg" id="f-msg">Tersimpan!</span>
+    </div>
+  </div>
+
+  <div id="tab-anggaran" class="sec" style="display:none">
+    <div class="sec-hdr">Atur anggaran & kategori</div>
+    <div id="anggaran-list"></div>
+    <div style="margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border);display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+      <div class="ff" style="flex:1;min-width:140px"><label>Nama kategori baru</label><input type="text" id="ang-new-name" placeholder="Misal: Air bersih"></div>
+      <div class="ff" style="flex:1;min-width:120px"><label>Anggaran (Rp)</label><input type="number" id="ang-new-val" placeholder="500000"></div>
+      <button class="btn btn-prim" onclick="tambahKategori()" style="margin-bottom:1px">+ Tambah</button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:12px">
+      <button class="btn btn-prim" onclick="simpanAnggaran()">Simpan anggaran</button>
+      <span class="success-msg" id="ang-msg">Tersimpan!</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-hdr">Edit transaksi</div>
+    <div class="fg">
+      <div class="ff"><label>Tanggal</label><input type="date" id="e-tgl"></div>
+      <div class="ff"><label>Jenis</label><select id="e-jenis"><option value="masuk">Pemasukan</option><option value="keluar">Pengeluaran</option></select></div>
+      <div class="ff" style="grid-column:1/-1"><label>Keterangan</label><input type="text" id="e-ket"></div>
+      <div class="ff"><label>Kategori</label><select id="e-kat"></select></div>
+      <div class="ff"><label>Jumlah (Rp)</label><input type="number" id="e-jml"></div>
+      <div class="ff" style="grid-column:1/-1">
+        <label>Bukti transaksi (opsional)</label>
+        <input type="file" id="e-bukti" accept="image/*">
+        <img id="e-bukti-preview" class="img-preview" style="display:none">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-prim" onclick="simpanEdit()">Simpan perubahan</button>
+      <button class="btn" onclick="tutupEdit()">Batal</button>
+    </div>
+  </div>
+</div>
+
+<footer>Shafa Townhouse Allura &mdash; Dashboard Kas Komplek</footer>
+
+<script>
+const BULAN_NAMA=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const SEMUA_RUMAH=[];
+for(let i=1;i<=10;i++) SEMUA_RUMAH.push('A-'+String(i).padStart(2,'0'));
+for(let i=1;i<=10;i++) SEMUA_RUMAH.push('B-'+String(i).padStart(2,'0'));
+for(let i=1;i<=6;i++) SEMUA_RUMAH.push('C-'+String(i).padStart(2,'0'));
+const CAT_COLORS=['#0F6E56','#185FA5','#854F0B','#3B6D11','#993C1D','#534AB7','#993556','#5F5E5A'];
+
+let now=new Date();
+let selBulan=now.getMonth(), selTahun=now.getFullYear();
+let editIdx=null;
+let pieKelChart=null, pieMainChart=null;
+
+// --- MULAI KONFIGURASI FIREBASE ---
+const firebaseConfig = {
+  apiKey: "AIzaSyAgHt0ThCc-mqir-GfGOHxqS_ORwWGa-yg",
+  authDomain: "kas-shafa-allura.firebaseapp.com",
+  databaseURL: "https://kas-shafa-allura-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kas-shafa-allura",
+  storageBucket: "kas-shafa-allura.firebasestorage.app",
+  messagingSenderId: "939143341471",
+  appId: "1:939143341471:web:f9bc007373b7950e9009aa"
+};
+
+// Inisialisasi Firebase
+firebase.initializeApp(firebaseConfig);
+const dbRef = firebase.database().ref('shafa_kas_data');
+
+let isAdmin = false; // Mode default: hanya viewer
+
+let data = {
+  transaksi:[], iuran:{},
+  anggaran:{Sampah:500000,'Listrik pos':300000,'Kebersihan taman':400000,Maintenance:600000,'Gaji security':2500000}
+};
+
+// Listener Real-time Firebase (Membaca data)
+dbRef.on('value', (snapshot) => {
+  const serverData = snapshot.val();
+  if (serverData) {
+    data = serverData;
+    if(!data.transaksi) data.transaksi = [];
+    if(!data.iuran) data.iuran = {};
+    if(!data.anggaran) data.anggaran = {};
+  }
+  render(); // Update layar setiap ada perubahan di server
+});
+
+// Fungsi Menyimpan Data ke Firebase
+function saveData(){
+  if(!isAdmin) {
+    alert("Maaf, hanya Admin yang dapat mengubah data.");
+    return;
+  }
+  dbRef.set(data);
+}
+
+// Fungsi Login Admin
+window.loginAdmin = function() {
+  if(isAdmin) { 
+    isAdmin = false; 
+    alert("Telah keluar dari mode Admin."); 
+    render(); 
+    return; 
+  }
+  const pin = prompt("Masukkan PIN Admin (Bisa tanya pengurus):");
+  if(pin === "161293") { // GANTI PIN INI SESUAI KEINGINANMU
+    isAdmin = true;
+    alert("Berhasil masuk! Anda sekarang bisa menambah dan mengedit transaksi.");
+    render();
+  } else if(pin !== null) {
+    alert("PIN Salah!");
+  }
+}
+
+function keyB(b,t){return t+'-'+b}
+function fmt(n){return 'Rp '+Math.round(n).toLocaleString('id-ID')}
+function getTxBulan(){return data.transaksi.filter(tx=>{const d=new Date(tx.tgl);return d.getMonth()===selBulan&&d.getFullYear()===selTahun})}
+function getIuranBulan(){return data.iuran[keyB(selBulan,selTahun)]||{}}
+function getKategoriList(){return Object.keys(data.anggaran).concat(['Iuran bulanan','Lain-lain']).filter((v,i,a)=>a.indexOf(v)===i)}
+
+function populateKatSelect(id){
+  const sel=document.getElementById(id); if(!sel)return;
+  const cur=sel.value; sel.innerHTML='';
+  getKategoriList().forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;sel.appendChild(o)});
+  if(cur) sel.value=cur;
+}
+
+function initBulanSelect(){
+  const sel=document.getElementById('sel-bulan'); sel.innerHTML='';
+  for(let i=0;i<12;i++){const o=document.createElement('option');o.value=i;o.textContent=BULAN_NAMA[i]+' '+selTahun;if(i===selBulan)o.selected=true;sel.appendChild(o)}
+  sel.onchange=()=>{selBulan=parseInt(sel.value);render()}
+}
+
+function initRumahSelect(){
+  const sel=document.getElementById('f-rmh');
+  SEMUA_RUMAH.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;sel.appendChild(o)})
+}
+
+function render(){
+  const txs=getTxBulan(); const iuran=getIuranBulan();
+  let masukB=0, keluarB=0;
+  txs.forEach(t=>{if(t.jenis==='masuk')masukB+=t.jml;else keluarB+=t.jml});
+  let totalAll=0;
+  data.transaksi.forEach(t=>{if(t.jenis==='masuk')totalAll+=t.jml;else totalAll-=t.jml});
+  document.getElementById('c-total').textContent=fmt(totalAll);
+  document.getElementById('c-masuk').textContent=fmt(masukB);
+  document.getElementById('c-keluar').textContent=fmt(keluarB);
+  document.getElementById('c-saldo').textContent=fmt(masukB-keluarB);
+  const aktif=SEMUA_RUMAH.filter(r=>iuran[r]!=='kosong');
+  const lunas=aktif.filter(r=>iuran[r]==='lunas').length;
+  document.getElementById('c-iuran').textContent=lunas+' / '+aktif.length;
+  const bl=BULAN_NAMA[selBulan]+' '+selTahun;
+  document.getElementById('bulan-label').textContent=bl;
+  document.getElementById('bulan-tx').textContent=BULAN_NAMA[selBulan];
+  document.getElementById('bulan-iuran').textContent=BULAN_NAMA[selBulan];
+  renderProgress(txs); renderTx(txs); renderIuran(iuran); renderAnggaranList(); renderCharts(txs,masukB,keluarB);
+  populateKatSelect('f-kat'); populateKatSelect('e-kat');
+}
+  const tabs = document.querySelectorAll('.tab');
+  if(tabs.length >= 4) {
+    tabs[2].style.display = isAdmin ? 'inline-block' : 'none'; // Tab Tambah
+    tabs[3].style.display = isAdmin ? 'inline-block' : 'none'; // Tab Anggaran
+  }
+  // TAMBAHKAN KODE INI: Sembunyikan form dropdown di tab iuran
+  const formIuran = document.querySelector('#tab-iuran .inline-form');
+  if(formIuran) {
+    formIuran.style.display = isAdmin ? 'flex' : 'none';
+  }
+  // Paksa kembali ke tab transaksi jika warga biasa mencoba buka tab admin
+  const tabTambah = document.getElementById('tab-tambah');
+  if(!isAdmin && tabTambah && tabTambah.style.display !== 'none') {
+    showTab('transaksi');
+  }
+
+function renderProgress(txs){
+  const area=document.getElementById('progress-area'); area.innerHTML='';
+  Object.keys(data.anggaran).forEach((kat,i)=>{
+    const budget=data.anggaran[kat]||0;
+    const real=txs.filter(t=>t.kat===kat&&t.jenis==='keluar').reduce((a,t)=>a+t.jml,0);
+    const pct=budget>0?Math.min(100,Math.round(real/budget*100)):0;
+    const col=CAT_COLORS[i%CAT_COLORS.length];
+    const over=real>budget;
+    area.innerHTML+=`<div class="prog-row">
+      <div class="prog-lbl"><span>${kat}</span><span style="color:${over?'var(--red)':'inherit'}">${fmt(real)} / ${fmt(budget)} (${pct}%)</span></div>
+      <div class="prog-bar"><div class="prog-fill ${over?'over':''}" style="width:${pct}%;background:${over?'var(--red)':col}"></div></div>
+    </div>`;
+  });
+}
+
+function renderTx(txs){
+  const tbody=document.getElementById('tx-body'); const empty=document.getElementById('tx-empty');
+  if(!txs.length){tbody.innerHTML='';empty.style.display='';return}
+  empty.style.display='none';
+  tbody.innerHTML=txs.map(tx=>{
+    const gi=data.transaksi.indexOf(tx);
+    const buktiHtml=tx.bukti
+      ?`<img src="${tx.bukti}" style="max-height:34px;max-width:50px;border-radius:3px;cursor:pointer;border:0.5px solid var(--border)" onclick="lihatBukti(${gi})" title="Lihat bukti">`
+      :`<span style="color:var(--text3);font-size:11px">—</span>`;
+    return`<tr>
+      <td style="color:var(--text2)">${tx.tgl}</td>
+      <td>${tx.ket}</td>
+      <td style="color:var(--text2)">${tx.kat}</td>
+      <td><span class="bdg ${tx.jenis==='masuk'?'bdg-in':'bdg-out'}">${tx.jenis==='masuk'?'Masuk':'Keluar'}</span></td>
+      <td style="text-align:right;font-weight:600;color:${tx.jenis==='masuk'?'var(--green)':'var(--red)'}">${fmt(tx.jml)}</td>
+      <td>${buktiHtml}</td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap">
+		${isAdmin ? `
+          <button class="btn btn-info btn-sm" onclick="bukaEdit(${gi})">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="hapusTx(${gi})">Hapus</button>
+		  ` : `<span style="color:var(--text3);font-size:11px">Terkunci</span>`}
+      </td>
+    </tr>`;
+  }).join('');
+}
+function renderIuran(iuran){
+  const grid=document.getElementById('iuran-grid');
+  grid.innerHTML=SEMUA_RUMAH.map(r=>{
+    const status=iuran[r]||'pending';
+    const cls=status==='lunas'?'bdg-lunas':status==='kosong'?'bdg-kosong':'bdg-pending';
+    const lbl=status==='lunas'?'Lunas':status==='kosong'?'Kosong':'Belum bayar';
+    
+    // Logika Admin: Jika Admin bisa diklik, jika bukan tidak terjadi apa-apa
+    const clickAttr = isAdmin 
+      ? `onclick="quickTandai('${r}')" style="cursor:pointer;" title="Klik untuk tandai"` 
+      : `style="cursor:default;"`;
+
+    return `<div class="rmh-card" ${clickAttr}>
+      <div class="rmh-no">${r}</div><span class="bdg ${cls}">${lbl}</span>
+    </div>`;
+  }).join('');
+}
+
+function quickTandai(rmh){
+  document.getElementById('f-rmh').value=rmh;
+  showTab('iuran');
+}
+
+function renderAnggaranList(){
+  const list=document.getElementById('anggaran-list'); list.innerHTML='';
+  Object.keys(data.anggaran).forEach(kat=>{
+    const row=document.createElement('div'); row.className='ang-row';
+    row.innerHTML=`<label>${kat}</label><input type="number" id="ang-${kat.replace(/[ /]/g,'_')}" value="${data.anggaran[kat]||0}"><button class="btn btn-danger btn-sm" onclick="hapusKategori('${kat}')">Hapus</button>`;
+    list.appendChild(row);
+  });
+}
+
+function renderCharts(txs,masukB,keluarB){
+  const katMap={};
+  txs.filter(t=>t.jenis==='keluar').forEach(t=>{katMap[t.kat]=(katMap[t.kat]||0)+t.jml});
+  const katKeys=Object.keys(katMap); const katVals=katKeys.map(k=>katMap[k]);
+  const katCols=katKeys.map((_,i)=>CAT_COLORS[i%CAT_COLORS.length]);
+  document.getElementById('leg-keluar').innerHTML=katKeys.length
+    ?katKeys.map((k,i)=>`<span class="leg-item"><span class="leg-sq" style="background:${katCols[i]}"></span>${k}</span>`).join('')
+    :`<span style="font-size:11px;color:var(--text3)">Belum ada pengeluaran</span>`;
+  if(pieKelChart){pieKelChart.destroy();pieKelChart=null}
+  if(katVals.length){pieKelChart=new Chart(document.getElementById('pieKeluar'),{type:'pie',data:{labels:katKeys,datasets:[{data:katVals,backgroundColor:katCols,borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}}}})}
+  document.getElementById('leg-main').innerHTML=`<span class="leg-item"><span class="leg-sq" style="background:#0F6E56"></span>Masuk ${fmt(masukB)}</span><span class="leg-item"><span class="leg-sq" style="background:#993C1D"></span>Keluar ${fmt(keluarB)}</span>`;
+  if(pieMainChart){pieMainChart.destroy();pieMainChart=null}
+  if(masukB||keluarB){pieMainChart=new Chart(document.getElementById('pieMain'),{type:'pie',data:{labels:['Pemasukan','Pengeluaran'],datasets:[{data:[masukB,keluarB],backgroundColor:['#0F6E56','#993C1D'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}}}})}
+}
+
+function tambahTx(){
+  const tgl=document.getElementById('f-tgl').value;
+  const jenis=document.getElementById('f-jenis').value;
+  const ket=document.getElementById('f-ket').value.trim();
+  const kat=document.getElementById('f-kat').value;
+  const jml=parseFloat(document.getElementById('f-jml').value);
+  const bukti=window._fBuktiData||null;
+  if(!tgl||!ket||isNaN(jml)||jml<=0){alert('Lengkapi semua field dengan benar.');return}
+  data.transaksi.unshift({tgl,jenis,ket,kat,jml,bukti});
+  window._fBuktiData=null; saveData();
+  flash('f-msg');
+  document.getElementById('f-ket').value='';
+  document.getElementById('f-jml').value='';
+  document.getElementById('f-bukti').value='';
+  document.getElementById('f-bukti-preview').style.display='none';
+  render();
+}
+
+function hapusTx(gi){
+  if(!confirm('Hapus transaksi ini?'))return;
+  data.transaksi.splice(gi,1); saveData(); render();
+}
+
+function lihatBukti(gi){
+  const tx=data.transaksi[gi]; if(!tx?.bukti)return;
+  const w=window.open(); w.document.write(`<img src="${tx.bukti}" style="max-width:100%;display:block;margin:auto">`); w.document.close();
+}
+
+function bukaEdit(gi){
+  editIdx=gi; const tx=data.transaksi[gi];
+  document.getElementById('e-tgl').value=tx.tgl;
+  document.getElementById('e-jenis').value=tx.jenis;
+  document.getElementById('e-ket').value=tx.ket;
+  document.getElementById('e-jml').value=tx.jml;
+  populateKatSelect('e-kat');
+  document.getElementById('e-kat').value=tx.kat;
+  window._eBuktiData=tx.bukti||null;
+  const prev=document.getElementById('e-bukti-preview');
+  if(tx.bukti){prev.src=tx.bukti;prev.style.display='block'}else{prev.style.display='none'}
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function simpanEdit(){
+  if(editIdx===null)return;
+  const tx=data.transaksi[editIdx];
+  tx.tgl=document.getElementById('e-tgl').value;
+  tx.jenis=document.getElementById('e-jenis').value;
+  tx.ket=document.getElementById('e-ket').value.trim();
+  tx.kat=document.getElementById('e-kat').value;
+  tx.jml=parseFloat(document.getElementById('e-jml').value)||tx.jml;
+  if(window._eBuktiData!==undefined) tx.bukti=window._eBuktiData;
+  saveData(); tutupEdit(); render();
+}
+
+function tutupEdit(){
+  editIdx=null;
+  document.getElementById('edit-modal').classList.remove('open');
+  document.getElementById('e-bukti').value='';
+  document.getElementById('e-bukti-preview').style.display='none';
+}
+
+function tandaiIuran(){
+  if(!isAdmin) return alert("Maaf, hanya Admin yang dapat mengubah data.");
+  const rmh=document.getElementById('f-rmh').value;
+  const status=document.getElementById('f-status').value;
+  if(!rmh){alert('Pilih nomor rumah.');return}
+  const key=keyB(selBulan,selTahun);
+  if(!data.iuran[key]) data.iuran[key]={};
+  data.iuran[key][rmh]=status;
+  saveData(); flash('iuran-msg'); render();
+}
+
+function tambahKategori(){
+  const nm=document.getElementById('ang-new-name').value.trim();
+  const val=parseFloat(document.getElementById('ang-new-val').value)||0;
+  if(!nm){alert('Isi nama kategori.');return}
+  data.anggaran[nm]=val;
+  document.getElementById('ang-new-name').value='';
+  document.getElementById('ang-new-val').value='';
+  saveData(); render();
+}
+
+function hapusKategori(kat){
+  if(!confirm(`Hapus kategori "${kat}"?`))return;
+  delete data.anggaran[kat]; saveData(); render();
+}
+
+function simpanAnggaran(){
+  Object.keys(data.anggaran).forEach(kat=>{
+    const el=document.getElementById('ang-'+kat.replace(/[ /]/g,'_'));
+    if(el) data.anggaran[kat]=parseFloat(el.value)||0;
+  });
+  saveData(); flash('ang-msg'); render();
+}
+
+function showTab(name){
+  ['transaksi','iuran','tambah','anggaran'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display=t===name?'':'none';
+  });
+  document.querySelectorAll('.tab').forEach((btn,i)=>{
+    btn.classList.toggle('active',['transaksi','iuran','tambah','anggaran'][i]===name);
+  });
+}
+
+function flash(id){
+  const el=document.getElementById(id); el.style.display='inline';
+  setTimeout(()=>el.style.display='none',2200);
+}
+
+function exportLaporan(){
+  const txs=getTxBulan(); const iuran=getIuranBulan();
+  let masuk=0, keluar=0; txs.forEach(t=>{if(t.jenis==='masuk')masuk+=t.jml;else keluar+=t.jml});
+  let total=0; data.transaksi.forEach(t=>{if(t.jenis==='masuk')total+=t.jml;else total-=t.jml});
+  const aktif=SEMUA_RUMAH.filter(r=>iuran[r]!=='kosong');
+  const lunas=aktif.filter(r=>iuran[r]==='lunas').length;
+  const iuranRows=SEMUA_RUMAH.map(r=>{
+    const st=iuran[r]||'pending';
+    const lbl=st==='lunas'?'Lunas':st==='kosong'?'Kosong':'Belum bayar';
+    const col=st==='lunas'?'#0F6E56':st==='kosong'?'#185FA5':'#854F0B';
+    return`<tr><td>${r}</td><td style="color:${col};font-weight:600">${lbl}</td></tr>`;
+  }).join('');
+  const txRows=txs.map(tx=>`<tr><td>${tx.tgl}</td><td>${tx.ket}</td><td>${tx.kat}</td><td>${tx.jenis==='masuk'?'Masuk':'Keluar'}</td><td style="text-align:right;font-weight:600;color:${tx.jenis==='masuk'?'#0F6E56':'#993C1D'}">${fmt(tx.jml)}</td></tr>`).join('');
+  const angRows=Object.keys(data.anggaran).map(k=>{
+    const real=txs.filter(t=>t.kat===k&&t.jenis==='keluar').reduce((a,t)=>a+t.jml,0);
+    const over=real>data.anggaran[k];
+    return`<tr><td>${k}</td><td style="text-align:right">${fmt(data.anggaran[k])}</td><td style="text-align:right;color:${over?'#993C1D':'inherit'};font-weight:${over?'600':'400'}">${fmt(real)}</td></tr>`;
+  }).join('');
+  const tgl=new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'});
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Laporan ${BULAN_NAMA[selBulan]} ${selTahun}</title>
+  <style>body{font-family:Arial,sans-serif;font-size:13px;padding:32px;color:#222;max-width:900px;margin:auto}
+  h1{font-size:22px;font-weight:bold;margin-bottom:4px}h2{font-size:15px;font-weight:bold;margin:24px 0 10px;padding-bottom:4px;border-bottom:1px solid #ddd}
+  table{border-collapse:collapse;width:100%;margin-bottom:8px}th{background:#f5f5f5;padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:12px}
+  td{padding:6px 10px;border:1px solid #ddd;font-size:12px}.sum{display:flex;gap:16px;margin:16px 0;flex-wrap:wrap}
+  .s{border:1px solid #ddd;border-radius:8px;padding:12px 16px;min-width:140px}.s .l{font-size:11px;color:#666;margin-bottom:4px}.s .v{font-size:18px;font-weight:bold}
+  @media print{body{padding:16px}}</style></head><body>
+  <h1>Laporan Kas Shafa Townhouse Allura</h1>
+  <p style="color:#666">${BULAN_NAMA[selBulan]} ${selTahun} &mdash; Dicetak: ${tgl}</p>
+  <div class="sum">
+    <div class="s"><div class="l">Saldo total kas</div><div class="v" style="color:#534AB7">${fmt(total)}</div></div>
+    <div class="s"><div class="l">Kas masuk bulan ini</div><div class="v" style="color:#0F6E56">${fmt(masuk)}</div></div>
+    <div class="s"><div class="l">Pengeluaran bulan ini</div><div class="v" style="color:#993C1D">${fmt(keluar)}</div></div>
+    <div class="s"><div class="l">Iuran terkumpul</div><div class="v">${lunas} / ${aktif.length} rumah</div></div>
+  </div>
+  <h2>Realisasi anggaran</h2>
+  <table><thead><tr><th>Kategori</th><th style="text-align:right">Anggaran</th><th style="text-align:right">Realisasi</th></tr></thead><tbody>${angRows}</tbody></table>
+  <h2>Riwayat transaksi</h2>
+  <table><thead><tr><th>Tanggal</th><th>Keterangan</th><th>Kategori</th><th>Jenis</th><th style="text-align:right">Jumlah</th></tr></thead>
+  <tbody>${txRows||'<tr><td colspan="5" style="text-align:center;color:#999;padding:12px">Tidak ada transaksi</td></tr>'}</tbody></table>
+  <h2>Status iuran warga</h2>
+  <table style="max-width:300px"><thead><tr><th>Nomor rumah</th><th>Status</th></tr></thead><tbody>${iuranRows}</tbody></table>
+  <script>window.onload=()=>window.print()<\/script></body></html>`;
+  const w=window.open('','_blank'); w.document.write(html); w.document.close();
+}
+
+function setupFileInput(inputId, previewId, storeKey){
+  document.getElementById(inputId).addEventListener('change', function(){
+    const file=this.files[0]; if(!file)return;
+    const reader=new FileReader();
+    reader.onload=e=>{
+      window[storeKey]=e.target.result;
+      const prev=document.getElementById(previewId);
+      prev.src=e.target.result; prev.style.display='block';
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)tutupEdit()});
+setupFileInput('f-bukti','f-bukti-preview','_fBuktiData');
+setupFileInput('e-bukti','e-bukti-preview','_eBuktiData');
+document.getElementById('f-tgl').value=now.toISOString().split('T')[0];
+initBulanSelect(); initRumahSelect(); render();
+</script>
+</body>
+</html>
