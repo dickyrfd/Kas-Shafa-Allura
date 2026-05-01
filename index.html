@@ -5,148 +5,105 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kas Komplek — Shafa Townhouse Allura</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    /* Apple Color Palette */
-    --bg: #ffffff; 
-    --bg2: #f5f5f7; 
-    --bg3: #e5e5ea;
-    --text: #1d1d1f; 
-    --text2: #86868b; 
-    --text3: #9b9b97;
-    --border: rgba(0,0,0,0.05); 
-    --border2: rgba(0,0,0,0.1);
-    
-    /* Semantic Colors */
-    --green: #28cd41; --green-bg: #e4f9e8; --green-text: #108121;
-    --red: #ff3b30; --red-bg: #ffebe9; --red-text: #c91910;
-    --blue: #0071e3; --blue-bg: #e1f0ff; --blue-text: #004e9c;
-    --purple: #bf5af2; --amber-bg: #fff0d4; --amber-text: #9e6000;
-    
-    --radius: 12px; --radius-lg: 20px;
+    --bg: #ffffff; --bg2: #f5f5f3; --bg3: #efefec;
+    --text: #1a1a1a; --text2: #6b6b68; --text3: #9b9b97;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+    --green: #0F6E56; --green-bg: #E1F5EE; --green-text: #0F6E56;
+    --red: #993C1D; --red-bg: #FAECE7; --red-text: #993C1D;
+    --blue: #185FA5; --blue-bg: #E6F1FB; --blue-text: #185FA5;
+    --purple: #534AB7; --amber-bg: #FAEEDA; --amber-text: #854F0B;
+    --radius: 8px; --radius-lg: 12px;
   }
-  
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #1c1c1e; --bg2: #000000; --bg3: #2c2c2e;
-      --text: #f5f5f7; --text2: #86868b; --text3: #636366;
-      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.15);
-      --green-bg: #093714; --green-text: #32d74b;
-      --red-bg: #4a0d0a; --red-text: #ff453a;
-      --blue-bg: #002552; --blue-text: #0a84ff;
-      --amber-bg: #4d3000; --amber-text: #ffd60a;
+      --bg: #1c1c1a; --bg2: #262624; --bg3: #2e2e2b;
+      --text: #f0efea; --text2: #9b9b97; --text3: #6b6b68;
+      --border: rgba(255,255,255,0.12); --border2: rgba(255,255,255,0.22);
+      --green-bg: #085041; --green-text: #9FE1CB;
+      --red-bg: #712B13; --red-text: #F5C4B3;
+      --blue-bg: #0C447C; --blue-text: #B5D4F4;
+      --amber-bg: #633806; --amber-text: #FAC775;
     }
   }
-
-  /* Apple System Font */
-  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif; background: var(--bg2); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
-  
-  /* Glassmorphism Topbar */
-  .topbar { background: rgba(255, 255, 255, 0.72); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 0.5px solid var(--border); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; position: sticky; top: 0; z-index: 10; }
-  @media (prefers-color-scheme: dark) {
-    .topbar { background: rgba(28, 28, 30, 0.72); }
-  }
-  
-  .topbar-left h1 { font-size: 19px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); }
-  .topbar-left p { font-size: 13px; color: var(--text2); margin-top: 2px; font-weight: 500; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg3); color: var(--text); min-height: 100vh; }
+  .topbar { background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; position: sticky; top: 0; z-index: 10; }
+  .topbar-left h1 { font-size: 16px; font-weight: 600; color: var(--text); }
+  .topbar-left p { font-size: 12px; color: var(--text2); margin-top: 1px; }
   .topbar-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  
-  .main { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
-  
-  /* Apple Style Cards with subtle shadows */
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .card { background: var(--bg); box-shadow: 0 4px 14px rgba(0,0,0,0.03); border-radius: var(--radius-lg); padding: 18px; display: flex; flex-direction: column; justify-content: space-between; }
-  .card .lbl { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 8px; }
-  .card .val { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); }
+  .main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 12px; }
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; }
+  .card .lbl { font-size: 11px; color: var(--text2); margin-bottom: 6px; }
+  .card .val { font-size: 20px; font-weight: 600; color: var(--text); }
   .val.green { color: var(--green); } .val.red { color: var(--red); } .val.blue { color: var(--blue); } .val.purple { color: var(--purple); }
-  
-  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
   @media (max-width: 600px) { .row2 { grid-template-columns: 1fr; } }
-  
-  .sec { background: var(--bg); box-shadow: 0 4px 14px rgba(0,0,0,0.03); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px; }
-  .sec-hdr { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; color: var(--text); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-  
-  /* Apple Style Tabs (Segmented Controls) */
-  .tabs { display: flex; gap: 0; margin-bottom: 20px; flex-wrap: wrap; background: var(--bg3); padding: 4px; border-radius: 12px; width: fit-content; }
-  .tab { font-size: 13px; font-weight: 500; padding: 6px 16px; border-radius: 8px; border: none; background: transparent; cursor: pointer; color: var(--text2); font-family: inherit; transition: all 0.2s ease; }
-  .tab.active { background: var(--bg); color: var(--text); font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-  
-  .prog-row { margin-bottom: 12px; }
-  .prog-lbl { display: flex; justify-content: space-between; font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 6px; }
-  .prog-bar { height: 6px; background: var(--bg3); border-radius: 99px; overflow: hidden; }
-  .prog-fill { height: 100%; border-radius: 99px; transition: width 0.5s ease-in-out; }
+  .sec { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 12px; }
+  .sec-hdr { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .tab { font-size: 12px; padding: 6px 14px; border-radius: var(--radius); border: 0.5px solid var(--border); background: transparent; cursor: pointer; color: var(--text2); font-family: inherit; transition: background 0.15s; }
+  .tab:hover { background: var(--bg2); }
+  .tab.active { background: var(--bg2); color: var(--text); font-weight: 600; border-color: var(--border2); }
+  .prog-row { margin-bottom: 9px; }
+  .prog-lbl { display: flex; justify-content: space-between; font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+  .prog-bar { height: 5px; background: var(--bg2); border-radius: 99px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 99px; transition: width 0.4s; }
   .prog-fill.over { background: var(--red) !important; }
-  
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; font-weight: 600; font-size: 12px; color: var(--text2); padding: 10px 8px; border-bottom: 1px solid var(--border); }
-  td { padding: 12px 8px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; font-weight: 600; font-size: 11px; color: var(--text2); padding: 6px 8px; border-bottom: 0.5px solid var(--border); }
+  td { padding: 8px 8px; border-bottom: 0.5px solid var(--border); color: var(--text); vertical-align: middle; }
   tr:last-child td { border-bottom: none; }
-  
-  .bdg { display: inline-block; font-size: 11px; padding: 4px 10px; border-radius: 99px; font-weight: 600; white-space: nowrap; }
+  tr:hover td { background: var(--bg2); }
+  .bdg { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 99px; font-weight: 600; white-space: nowrap; }
   .bdg-in { background: var(--green-bg); color: var(--green-text); }
   .bdg-out { background: var(--red-bg); color: var(--red-text); }
   .bdg-lunas { background: var(--green-bg); color: var(--green-text); }
   .bdg-pending { background: var(--amber-bg); color: var(--amber-text); }
   .bdg-kosong { background: var(--blue-bg); color: var(--blue-text); }
-  
-  .fg { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .fg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   @media (max-width: 500px) { .fg { grid-template-columns: 1fr; } }
-  .ff { display: flex; flex-direction: column; gap: 6px; }
-  .ff label { font-size: 12px; font-weight: 500; color: var(--text2); }
-  
-  /* Apple Style Inputs */
-  input, select, textarea { font-size: 14px; padding: 10px 12px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); font-family: inherit; width: 100%; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
-  input:focus, select:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.2); }
-  
-  /* Apple Style Pill Buttons */
-  .btn { font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: 999px; border: none; background: var(--bg3); color: var(--text); cursor: pointer; font-family: inherit; transition: opacity 0.2s, background 0.2s; }
-  .btn:hover { background: var(--border2); }
-  .btn-prim { background: var(--blue); color: #fff; font-weight: 600; }
-  .btn-prim:hover { background: #005bb5; opacity: 1; }
-  .btn-sm { font-size: 12px; padding: 6px 12px; }
-  .btn-danger { background: var(--red-bg); color: var(--red-text); }
-  .btn-danger:hover { background: #ffc9c6; }
-  .btn-info { background: var(--blue-bg); color: var(--blue-text); }
-  
-  .iuran-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; margin-top: 10px; }
-  .rmh-card { background: var(--bg); border-radius: var(--radius); padding: 12px 10px; font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; border: 1px solid var(--border); transition: border-color 0.2s, box-shadow 0.2s; }
-  .rmh-card:hover { border-color: var(--blue); box-shadow: 0 2px 8px rgba(0,113,227,0.1); }
-  .rmh-no { font-weight: 600; font-size: 14px; color: var(--text); }
-  
-  .empty { text-align: center; color: var(--text3); font-size: 14px; padding: 3rem 0; font-weight: 500; }
-  .inline-form { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .inline-form select, .inline-form input { width: auto; }
-  .leg { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; font-size: 12px; font-weight: 500; color: var(--text2); }
-  .leg-item { display: flex; align-items: center; gap: 6px; }
-  .leg-sq { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
-  
-  .ang-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .ang-row label { font-size: 13px; font-weight: 500; color: var(--text); min-width: 150px; flex-shrink: 0; }
+  .ff { display: flex; flex-direction: column; gap: 4px; }
+  .ff label { font-size: 11px; color: var(--text2); }
+  input, select, textarea { font-size: 13px; padding: 7px 10px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); font-family: inherit; width: 100%; outline: none; transition: border-color 0.15s; }
+  input:focus, select:focus, textarea:focus { border-color: var(--blue); }
+  .btn { font-size: 12px; padding: 7px 14px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: transparent; color: var(--text); cursor: pointer; font-family: inherit; transition: background 0.15s; }
+  .btn:hover { background: var(--bg2); }
+  .btn-prim { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 600; }
+  .btn-prim:hover { opacity: 0.85; background: var(--text); }
+  .btn-sm { font-size: 11px; padding: 4px 10px; }
+  .btn-danger { color: var(--red); border-color: rgba(153,60,29,0.4); }
+  .btn-info { color: var(--blue); border-color: rgba(24,95,165,0.4); }
+  .iuran-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; margin-top: 10px; }
+  .rmh-card { background: var(--bg2); border-radius: var(--radius); padding: 8px 10px; font-size: 11px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; border: 0.5px solid transparent; transition: border-color 0.15s; }
+  .rmh-card:hover { border-color: var(--border2); }
+  .rmh-no { font-weight: 600; font-size: 12px; color: var(--text); }
+  .empty { text-align: center; color: var(--text3); font-size: 12px; padding: 2rem 0; }
+  .inline-form { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .inline-form select, .inline-form input { width: auto; font-size: 12px; padding: 5px 8px; }
+  .leg { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; font-size: 11px; color: var(--text2); }
+  .leg-item { display: flex; align-items: center; gap: 4px; }
+  .leg-sq { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .ang-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .ang-row label { font-size: 12px; color: var(--text); min-width: 150px; flex-shrink: 0; }
   .ang-row input { max-width: 160px; }
-  
-  .img-preview { max-height: 80px; max-width: 100%; border-radius: 8px; margin-top: 6px; border: 1px solid var(--border); display: block; object-fit: cover; }
-  
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; padding: 16px; opacity: 0; transition: opacity 0.3s ease; }
-  .modal-overlay.open { display: flex; opacity: 1; }
-  .modal { background: var(--bg); border-radius: var(--radius-lg); box-shadow: 0 20px 40px rgba(0,0,0,0.15); padding: 24px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; transform: scale(0.95); transition: transform 0.3s ease; }
-  .modal-overlay.open .modal { transform: scale(1); }
-  
-  .modal-hdr { font-size: 18px; font-weight: 700; letter-spacing: -0.4px; color: var(--text); margin-bottom: 18px; }
-  .tag { font-size: 10px; padding: 2px 8px; border-radius: 999px; background: var(--blue-bg); color: var(--blue-text); font-weight: 700; margin-left: 8px; vertical-align: middle; letter-spacing: 0; }
-  .success-msg { font-size: 12px; font-weight: 600; color: var(--green); display: none; }
-  
-  footer { text-align: center; font-size: 12px; font-weight: 500; color: var(--text3); padding: 32px 16px; }
+  .img-preview { max-height: 70px; max-width: 100%; border-radius: 4px; margin-top: 4px; border: 0.5px solid var(--border); display: block; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--bg); border-radius: var(--radius-lg); border: 0.5px solid var(--border); padding: 20px; width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto; }
+  .modal-hdr { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 14px; }
+  .tag { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--blue-bg); color: var(--blue-text); font-weight: 600; margin-left: 6px; vertical-align: middle; }
+  .success-msg { font-size: 11px; color: var(--green); display: none; }
+  footer { text-align: center; font-size: 11px; color: var(--text3); padding: 24px 16px; }
 </style>
 </head>
 <body>
 
 <div class="topbar">
   <div class="topbar-left">
-    <h1 onclick="loginAdmin()" style="cursor:pointer" title="Klik untuk Login Admin">Shafa Townhouse Allura <span class="tag">Kas Komplek</span></h1>
+    <h1>Shafa Townhouse Allura <span class="tag">Kas Komplek</span></h1>
     <p id="bulan-label"></p>
   </div>
   <div class="topbar-right">
@@ -184,11 +141,11 @@
   </div>
   <div style="margin-bottom:12px"></div>
 
-  <div class="tabs" id="main-tabs">
+  <div class="tabs">
     <button class="tab active" onclick="showTab('transaksi')">Transaksi</button>
     <button class="tab" onclick="showTab('iuran')">Iuran warga</button>
-    <button class="tab" onclick="showTab('tambah')" style="display:none">+ Tambah</button>
-    <button class="tab" onclick="showTab('anggaran')" style="display:none">Anggaran</button>
+    <button class="tab" onclick="showTab('tambah')">+ Tambah</button>
+    <button class="tab" onclick="showTab('anggaran')">Anggaran</button>
   </div>
 
   <div id="tab-transaksi" class="sec">
@@ -213,7 +170,7 @@
   <div id="tab-iuran" class="sec" style="display:none">
     <div class="sec-hdr">
       <span>Status iuran warga — <span id="bulan-iuran" style="font-weight:400"></span></span>
-      <div class="inline-form" id="form-iuran" style="display:none">
+      <div class="inline-form">
         <select id="f-rmh"><option value="">-- pilih rumah --</option></select>
         <select id="f-status">
           <option value="lunas">Lunas</option>
@@ -294,71 +251,31 @@ const BULAN_NAMA=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agus
 const SEMUA_RUMAH=[];
 for(let i=1;i<=10;i++) SEMUA_RUMAH.push('A-'+String(i).padStart(2,'0'));
 for(let i=1;i<=10;i++) SEMUA_RUMAH.push('B-'+String(i).padStart(2,'0'));
-for(let i=1;i<=5;i++) SEMUA_RUMAH.push('C-'+String(i).padStart(2,'0'));
+for(let i=1;i<=6;i++) SEMUA_RUMAH.push('C-'+String(i).padStart(2,'0'));
 const CAT_COLORS=['#0F6E56','#185FA5','#854F0B','#3B6D11','#993C1D','#534AB7','#993556','#5F5E5A'];
 
+const STORAGE_KEY='shafa_kas_data';
 let now=new Date();
 let selBulan=now.getMonth(), selTahun=now.getFullYear();
 let editIdx=null;
 let pieKelChart=null, pieMainChart=null;
 
-// --- FIREBASE CONFIGURATION ---
-const firebaseConfig = {
-  apiKey: "AIzaSyAgHt0ThCc-mqir-GfGOHxqS_ORwWGa-yg",
-  authDomain: "kas-shafa-allura.firebaseapp.com",
-  databaseURL: "https://kas-shafa-allura-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "kas-shafa-allura",
-  storageBucket: "kas-shafa-allura.firebasestorage.app",
-  messagingSenderId: "939143341471",
-  appId: "1:939143341471:web:f9bc007373b7950e9009aa"
-};
+let data=loadData();
 
-firebase.initializeApp(firebaseConfig);
-const dbRef = firebase.database().ref('shafa_kas_data');
-
-let isAdmin = false;
-
-let data = {
-  transaksi:[], iuran:{},
-  anggaran:{Sampah:500000,'Listrik pos':300000,'Kebersihan taman':400000,Maintenance:600000,'Gaji security':2500000}
-};
-
-dbRef.on('value', (snapshot) => {
-  const serverData = snapshot.val();
-  if (serverData) {
-    data = serverData;
-    if(!data.transaksi) data.transaksi = [];
-    if(!data.iuran) data.iuran = {};
-    if(!data.anggaran) data.anggaran = {};
-  }
-  render();
-});
+function loadData(){
+  try {
+    const saved=localStorage.getItem(STORAGE_KEY);
+    if(saved) return JSON.parse(saved);
+  } catch(e){}
+  return {
+    transaksi:[],iuran:{},
+    anggaran:{Sampah:500000,'Listrik pos':300000,'Kebersihan taman':400000,Maintenance:600000,'Gaji security':2500000}
+  };
+}
 
 function saveData(){
-  if(!isAdmin) {
-    alert("Maaf, hanya Admin yang dapat mengubah data.");
-    return;
-  }
-  dbRef.set(data);
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e){}
 }
-
-window.loginAdmin = function() {
-  if(isAdmin) { 
-    isAdmin = false; 
-    alert("Telah keluar dari mode Admin."); 
-    render(); 
-    return; 
-  }
-  const pin = prompt("Masukkan PIN Admin:");
-  if(pin === "112233") {
-    isAdmin = true;
-    alert("Berhasil masuk! Anda sekarang bisa menambah dan mengedit transaksi.");
-    render();
-  } else if(pin !== null) {
-    alert("PIN Salah!");
-  }
-}
-// --- END FIREBASE ---
 
 function keyB(b,t){return t+'-'+b}
 function fmt(n){return 'Rp '+Math.round(n).toLocaleString('id-ID')}
@@ -403,20 +320,6 @@ function render(){
   document.getElementById('bulan-iuran').textContent=BULAN_NAMA[selBulan];
   renderProgress(txs); renderTx(txs); renderIuran(iuran); renderAnggaranList(); renderCharts(txs,masukB,keluarB);
   populateKatSelect('f-kat'); populateKatSelect('e-kat');
-
-  // UPDATE TAMPILAN ADMIN / VIEWER
-  const tabs = document.querySelectorAll('.tab');
-  if(tabs.length >= 4) {
-    tabs[2].style.display = isAdmin ? 'inline-block' : 'none';
-    tabs[3].style.display = isAdmin ? 'inline-block' : 'none';
-  }
-  const formIuran = document.getElementById('form-iuran');
-  if(formIuran) formIuran.style.display = isAdmin ? 'flex' : 'none';
-  
-  const tabTambah = document.getElementById('tab-tambah');
-  if(!isAdmin && tabTambah && tabTambah.style.display !== 'none') {
-    showTab('transaksi');
-  }
 }
 
 function renderProgress(txs){
@@ -451,10 +354,8 @@ function renderTx(txs){
       <td style="text-align:right;font-weight:600;color:${tx.jenis==='masuk'?'var(--green)':'var(--red)'}">${fmt(tx.jml)}</td>
       <td>${buktiHtml}</td>
       <td style="display:flex;gap:4px;flex-wrap:wrap">
-        ${isAdmin ? `
-          <button class="btn btn-info btn-sm" onclick="bukaEdit(${gi})">Edit</button>
-          <button class="btn btn-danger btn-sm" onclick="hapusTx(${gi})">Hapus</button>
-        ` : `<span style="color:var(--text3);font-size:11px">Hanya Admin</span>`}
+        <button class="btn btn-info btn-sm" onclick="bukaEdit(${gi})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="hapusTx(${gi})">Hapus</button>
       </td>
     </tr>`;
   }).join('');
@@ -466,17 +367,13 @@ function renderIuran(iuran){
     const status=iuran[r]||'pending';
     const cls=status==='lunas'?'bdg-lunas':status==='kosong'?'bdg-kosong':'bdg-pending';
     const lbl=status==='lunas'?'Lunas':status==='kosong'?'Kosong':'Belum bayar';
-    const clickAttr = isAdmin 
-      ? `onclick="quickTandai('${r}')" style="cursor:pointer;" title="Klik untuk tandai"` 
-      : `style="cursor:default;"`;
-    return`<div class="rmh-card" ${clickAttr}>
+    return`<div class="rmh-card" onclick="quickTandai('${r}')" title="Klik untuk tandai">
       <div class="rmh-no">${r}</div><span class="bdg ${cls}">${lbl}</span>
     </div>`;
   }).join('');
 }
 
 function quickTandai(rmh){
-  if(!isAdmin) return;
   document.getElementById('f-rmh').value=rmh;
   showTab('iuran');
 }
@@ -506,7 +403,6 @@ function renderCharts(txs,masukB,keluarB){
 }
 
 function tambahTx(){
-  if(!isAdmin) return alert("Hanya admin!");
   const tgl=document.getElementById('f-tgl').value;
   const jenis=document.getElementById('f-jenis').value;
   const ket=document.getElementById('f-ket').value.trim();
@@ -525,7 +421,6 @@ function tambahTx(){
 }
 
 function hapusTx(gi){
-  if(!isAdmin) return;
   if(!confirm('Hapus transaksi ini?'))return;
   data.transaksi.splice(gi,1); saveData(); render();
 }
@@ -536,7 +431,6 @@ function lihatBukti(gi){
 }
 
 function bukaEdit(gi){
-  if(!isAdmin) return;
   editIdx=gi; const tx=data.transaksi[gi];
   document.getElementById('e-tgl').value=tx.tgl;
   document.getElementById('e-jenis').value=tx.jenis;
@@ -551,7 +445,7 @@ function bukaEdit(gi){
 }
 
 function simpanEdit(){
-  if(!isAdmin || editIdx===null)return;
+  if(editIdx===null)return;
   const tx=data.transaksi[editIdx];
   tx.tgl=document.getElementById('e-tgl').value;
   tx.jenis=document.getElementById('e-jenis').value;
@@ -570,7 +464,6 @@ function tutupEdit(){
 }
 
 function tandaiIuran(){
-  if(!isAdmin) return alert("Hanya admin!");
   const rmh=document.getElementById('f-rmh').value;
   const status=document.getElementById('f-status').value;
   if(!rmh){alert('Pilih nomor rumah.');return}
@@ -581,7 +474,6 @@ function tandaiIuran(){
 }
 
 function tambahKategori(){
-  if(!isAdmin) return;
   const nm=document.getElementById('ang-new-name').value.trim();
   const val=parseFloat(document.getElementById('ang-new-val').value)||0;
   if(!nm){alert('Isi nama kategori.');return}
@@ -592,13 +484,11 @@ function tambahKategori(){
 }
 
 function hapusKategori(kat){
-  if(!isAdmin) return;
   if(!confirm(`Hapus kategori "${kat}"?`))return;
   delete data.anggaran[kat]; saveData(); render();
 }
 
 function simpanAnggaran(){
-  if(!isAdmin) return;
   Object.keys(data.anggaran).forEach(kat=>{
     const el=document.getElementById('ang-'+kat.replace(/[ /]/g,'_'));
     if(el) data.anggaran[kat]=parseFloat(el.value)||0;
@@ -626,43 +516,151 @@ function exportLaporan(){
   let total=0; data.transaksi.forEach(t=>{if(t.jenis==='masuk')total+=t.jml;else total-=t.jml});
   const aktif=SEMUA_RUMAH.filter(r=>iuran[r]!=='kosong');
   const lunas=aktif.filter(r=>iuran[r]==='lunas').length;
-  const iuranRows=SEMUA_RUMAH.map(r=>{
+  const tgl=new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'});
+
+  // --- Kartu ringkasan ---
+  const sumCards=[
+    {l:'Saldo total kas',v:fmt(total),c:'#534AB7'},
+    {l:'Kas masuk bulan ini',v:fmt(masuk),c:'#0F6E56'},
+    {l:'Pengeluaran bulan ini',v:fmt(keluar),c:'#993C1D'},
+    {l:'Saldo bulan ini',v:fmt(masuk-keluar),c:'#185FA5'},
+    {l:'Iuran terkumpul',v:`${lunas} / ${aktif.length} rumah`,c:'#1a1a1a'},
+  ].map(s=>`<div class="s-card"><div class="s-lbl">${s.l}</div><div class="s-val" style="color:${s.c}">${s.v}</div></div>`).join('');
+
+  // --- Progress bar anggaran ---
+  const progRows=Object.keys(data.anggaran).map((kat,i)=>{
+    const budget=data.anggaran[kat]||0;
+    const real=txs.filter(t=>t.kat===kat&&t.jenis==='keluar').reduce((a,t)=>a+t.jml,0);
+    const pct=budget>0?Math.min(100,Math.round(real/budget*100)):0;
+    const over=real>budget;
+    const col=over?'#993C1D':CAT_COLORS[i%CAT_COLORS.length];
+    return`<div class="prog-row">
+      <div class="prog-meta"><span>${kat}</span><span style="color:${over?'#993C1D':'#555'}">${fmt(real)} / ${fmt(budget)} (${pct}%)</span></div>
+      <div class="prog-bg"><div class="prog-fill" style="width:${pct}%;background:${col}"></div></div>
+    </div>`;
+  }).join('');
+
+  // --- Chart images dari canvas ---
+  const chartKelImg = (pieKelChart && pieKelChart.canvas)
+    ? `<img src="${pieKelChart.canvas.toDataURL('image/png')}" style="max-height:220px;display:block;margin:auto">`
+    : `<p style="text-align:center;color:#999;padding:40px 0;font-size:12px">Belum ada data pengeluaran</p>`;
+  const chartMainImg = (pieMainChart && pieMainChart.canvas)
+    ? `<img src="${pieMainChart.canvas.toDataURL('image/png')}" style="max-height:220px;display:block;margin:auto">`
+    : `<p style="text-align:center;color:#999;padding:40px 0;font-size:12px">Belum ada data</p>`;
+
+  // --- Legenda chart keluar ---
+  const katMap={};
+  txs.filter(t=>t.jenis==='keluar').forEach(t=>{katMap[t.kat]=(katMap[t.kat]||0)+t.jml});
+  const katKeys=Object.keys(katMap);
+  const legKelHtml=katKeys.map((k,i)=>`<span class="leg-item"><span class="leg-sq" style="background:${CAT_COLORS[i%CAT_COLORS.length]}"></span>${k}: ${fmt(katMap[k])}</span>`).join('');
+  const legMainHtml=`<span class="leg-item"><span class="leg-sq" style="background:#0F6E56"></span>Masuk: ${fmt(masuk)}</span><span class="leg-item"><span class="leg-sq" style="background:#993C1D"></span>Keluar: ${fmt(keluar)}</span>`;
+
+  // --- Tabel transaksi ---
+  const txRows=txs.map(tx=>`<tr>
+    <td>${tx.tgl}</td><td>${tx.ket}</td><td>${tx.kat}</td>
+    <td><span class="bdg ${tx.jenis==='masuk'?'bdg-in':'bdg-out'}">${tx.jenis==='masuk'?'Masuk':'Keluar'}</span></td>
+    <td style="text-align:right;font-weight:600;color:${tx.jenis==='masuk'?'#0F6E56':'#993C1D'}">${fmt(tx.jml)}</td>
+    <td>${tx.bukti?`<img src="${tx.bukti}" style="max-height:36px;max-width:50px;border-radius:3px;border:1px solid #ddd">`:'—'}</td>
+  </tr>`).join('');
+
+  // --- Grid iuran warga ---
+  const iuranCards=SEMUA_RUMAH.map(r=>{
     const st=iuran[r]||'pending';
     const lbl=st==='lunas'?'Lunas':st==='kosong'?'Kosong':'Belum bayar';
+    const bg=st==='lunas'?'#E1F5EE':st==='kosong'?'#E6F1FB':'#FAEEDA';
     const col=st==='lunas'?'#0F6E56':st==='kosong'?'#185FA5':'#854F0B';
-    return`<tr><td>${r}</td><td style="color:${col};font-weight:600">${lbl}</td></tr>`;
+    return`<div class="rmh-card"><div class="rmh-no">${r}</div><span class="rmh-bdg" style="background:${bg};color:${col}">${lbl}</span></div>`;
   }).join('');
-  const txRows=txs.map(tx=>`<tr><td>${tx.tgl}</td><td>${tx.ket}</td><td>${tx.kat}</td><td>${tx.jenis==='masuk'?'Masuk':'Keluar'}</td><td style="text-align:right;font-weight:600;color:${tx.jenis==='masuk'?'#0F6E56':'#993C1D'}">${fmt(tx.jml)}</td></tr>`).join('');
-  const angRows=Object.keys(data.anggaran).map(k=>{
-    const real=txs.filter(t=>t.kat===k&&t.jenis==='keluar').reduce((a,t)=>a+t.jml,0);
-    const over=real>data.anggaran[k];
-    return`<tr><td>${k}</td><td style="text-align:right">${fmt(data.anggaran[k])}</td><td style="text-align:right;color:${over?'#993C1D':'inherit'};font-weight:${over?'600':'400'}">${fmt(real)}</td></tr>`;
-  }).join('');
-  const tgl=new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'});
-  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Laporan ${BULAN_NAMA[selBulan]} ${selTahun}</title>
-  <style>body{font-family:Arial,sans-serif;font-size:13px;padding:32px;color:#222;max-width:900px;margin:auto}
-  h1{font-size:22px;font-weight:bold;margin-bottom:4px}h2{font-size:15px;font-weight:bold;margin:24px 0 10px;padding-bottom:4px;border-bottom:1px solid #ddd}
-  table{border-collapse:collapse;width:100%;margin-bottom:8px}th{background:#f5f5f5;padding:6px 10px;border:1px solid #ddd;text-align:left;font-size:12px}
-  td{padding:6px 10px;border:1px solid #ddd;font-size:12px}.sum{display:flex;gap:16px;margin:16px 0;flex-wrap:wrap}
-  .s{border:1px solid #ddd;border-radius:8px;padding:12px 16px;min-width:140px}.s .l{font-size:11px;color:#666;margin-bottom:4px}.s .v{font-size:18px;font-weight:bold}
-  @media print{body{padding:16px}}</style></head><body>
-  <h1>Laporan Kas Shafa Townhouse Allura</h1>
-  <p style="color:#666">${BULAN_NAMA[selBulan]} ${selTahun} &mdash; Dicetak: ${tgl}</p>
-  <div class="sum">
-    <div class="s"><div class="l">Saldo total kas</div><div class="v" style="color:#534AB7">${fmt(total)}</div></div>
-    <div class="s"><div class="l">Kas masuk bulan ini</div><div class="v" style="color:#0F6E56">${fmt(masuk)}</div></div>
-    <div class="s"><div class="l">Pengeluaran bulan ini</div><div class="v" style="color:#993C1D">${fmt(keluar)}</div></div>
-    <div class="s"><div class="l">Iuran terkumpul</div><div class="v">${lunas} / ${aktif.length} rumah</div></div>
+
+  const html=`<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<title>Laporan Kas — ${BULAN_NAMA[selBulan]} ${selTahun}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:13px;color:#1a1a1a;background:#fff;padding:32px;max-width:960px;margin:auto}
+  .report-header{border-bottom:2px solid #1a1a1a;padding-bottom:12px;margin-bottom:20px}
+  .report-header h1{font-size:22px;font-weight:700;margin-bottom:3px}
+  .report-header p{font-size:12px;color:#666}
+  h2{font-size:14px;font-weight:700;margin:28px 0 12px;padding-bottom:6px;border-bottom:1.5px solid #e0e0e0;text-transform:uppercase;letter-spacing:0.5px;color:#333}
+  /* Kartu ringkasan */
+  .s-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:4px}
+  .s-card{border:1px solid #e0e0e0;border-radius:8px;padding:12px 14px}
+  .s-lbl{font-size:10px;color:#888;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.3px}
+  .s-val{font-size:16px;font-weight:700}
+  /* Progress anggaran */
+  .prog-row{margin-bottom:10px}
+  .prog-meta{display:flex;justify-content:space-between;font-size:11px;color:#555;margin-bottom:4px}
+  .prog-bg{height:7px;background:#efefef;border-radius:99px;overflow:hidden}
+  .prog-fill{height:100%;border-radius:99px}
+  /* Chart */
+  .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:4px}
+  .chart-box{border:1px solid #e0e0e0;border-radius:8px;padding:14px;text-align:center}
+  .chart-title{font-size:12px;font-weight:600;color:#333;margin-bottom:8px;text-align:left}
+  .leg{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;font-size:11px;color:#555}
+  .leg-item{display:flex;align-items:center;gap:5px}
+  .leg-sq{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+  /* Tabel */
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{background:#f5f5f5;padding:7px 10px;border:1px solid #ddd;text-align:left;font-size:11px;font-weight:600;color:#444;text-transform:uppercase;letter-spacing:0.3px}
+  td{padding:7px 10px;border:1px solid #ddd;vertical-align:middle}
+  tr:nth-child(even) td{background:#fafafa}
+  .bdg{display:inline-block;font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600}
+  .bdg-in{background:#E1F5EE;color:#0F6E56}.bdg-out{background:#FAECE7;color:#993C1D}
+  /* Grid iuran */
+  .iuran-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px}
+  .rmh-card{border:1px solid #e0e0e0;border-radius:7px;padding:8px 10px}
+  .rmh-no{font-weight:700;font-size:12px;margin-bottom:4px}
+  .rmh-bdg{display:inline-block;font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600}
+  /* Print */
+  @media print{
+    body{padding:16px}
+    @page{margin:16mm}
+    .chart-row{break-inside:avoid}
+    h2{break-after:avoid}
+  }
+</style>
+</head><body>
+
+<div class="report-header">
+  <h1>Laporan Kas — Shafa Townhouse Allura</h1>
+  <p>${BULAN_NAMA[selBulan]} ${selTahun} &nbsp;|&nbsp; Dicetak: ${tgl}</p>
+</div>
+
+<h2>Ringkasan keuangan</h2>
+<div class="s-grid">${sumCards}</div>
+
+<h2>Progres anggaran pengeluaran</h2>
+${progRows||'<p style="color:#999;font-size:12px">Belum ada anggaran.</p>'}
+
+<h2>Grafik keuangan</h2>
+<div class="chart-row">
+  <div class="chart-box">
+    <div class="chart-title">Komposisi pengeluaran</div>
+    <div class="leg">${legKelHtml||'<span style="color:#999">Belum ada data</span>'}</div>
+    ${chartKelImg}
   </div>
-  <h2>Realisasi anggaran</h2>
-  <table><thead><tr><th>Kategori</th><th style="text-align:right">Anggaran</th><th style="text-align:right">Realisasi</th></tr></thead><tbody>${angRows}</tbody></table>
-  <h2>Riwayat transaksi</h2>
-  <table><thead><tr><th>Tanggal</th><th>Keterangan</th><th>Kategori</th><th>Jenis</th><th style="text-align:right">Jumlah</th></tr></thead>
-  <tbody>${txRows||'<tr><td colspan="5" style="text-align:center;color:#999;padding:12px">Tidak ada transaksi</td></tr>'}</tbody></table>
-  <h2>Status iuran warga</h2>
-  <table style="max-width:300px"><thead><tr><th>Nomor rumah</th><th>Status</th></tr></thead><tbody>${iuranRows}</tbody></table>
-  <script>window.onload=()=>window.print()<\/script></body></html>`;
-  const w=window.open('','_blank'); w.document.write(html); w.document.close();
+  <div class="chart-box">
+    <div class="chart-title">Pemasukan vs pengeluaran</div>
+    <div class="leg">${legMainHtml}</div>
+    ${chartMainImg}
+  </div>
+</div>
+
+<h2>Riwayat transaksi</h2>
+<table>
+  <thead><tr><th>Tanggal</th><th>Keterangan</th><th>Kategori</th><th>Jenis</th><th style="text-align:right">Jumlah</th><th>Bukti</th></tr></thead>
+  <tbody>${txRows||'<tr><td colspan="6" style="text-align:center;color:#999;padding:16px">Tidak ada transaksi bulan ini</td></tr>'}</tbody>
+</table>
+
+<h2>Status iuran warga</h2>
+<div class="iuran-grid">${iuranCards}</div>
+
+<script>window.onload=()=>window.print()<\/script>
+</body></html>`;
+
+  const w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
 }
 
 function setupFileInput(inputId, previewId, storeKey){
