@@ -115,7 +115,7 @@
 
 <div class="topbar">
   <div class="topbar-left">
-    <h1 onclick="loginAdmin()" style="cursor:pointer" title="Klik untuk Login Admin">Shafa Townhouse Allura <span class="tag">Kas Komplek</span></h1>
+    <h1 onclick="loginAdmin()" style="cursor:pointer" title="Klik untuk Login Admin">Shafa Townhouse Allura <span class="tag">Kas Cluster</span></h1>
     <p id="bulan-label"></p>
   </div>
   <div class="topbar-right">
@@ -258,7 +258,21 @@
   </div>
 </div>
 
-<footer>Shafa Townhouse Allura &mdash; Dashboard Kas Komplek</footer>
+<footer>
+  <div style="display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:8px">
+    <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3)">
+      <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#0F6E56;animation:pulse 2s infinite"></span>
+      Total pengunjung
+    </span>
+    <img src="https://hits.sh/dickyrfd.github.io/Kas-Shafa-Allura.svg?style=flat-square&label=pengunjung&color=185FA5&labelColor=f5f5f3" alt="Visitor counter" style="height:20px;vertical-align:middle">
+  </div>
+  <div>Shafa Townhouse Allura &mdash; Dashboard Kas Cluster</div>
+</footer>
+<style>
+@keyframes pulse {
+  0%,100%{opacity:1} 50%{opacity:0.3}
+}
+</style>
 
 <script>
 const BULAN_NAMA=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
