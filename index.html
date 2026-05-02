@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kas Komplek — Shafa Townhouse Allura</title>
+<title>Kas Cluster — Shafa Townhouse Allura</title>
 <link rel="icon" type="image/jpeg" href="thumbnail-allura.jpg">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <!-- Firebase SDK -->
@@ -107,7 +107,7 @@
 
 <div class="topbar">
   <div class="topbar-left">
-    <h1 onclick="loginAdmin()" style="cursor:pointer" title="Klik untuk Login Admin">Shafa Townhouse Allura <span class="tag">Kas Komplek</span></h1>
+    <h1 onclick="loginAdmin()" style="cursor:pointer" title="Klik untuk Login Admin">Shafa Townhouse Allura <span class="tag">Kas Cluster</span></h1>
     <p id="bulan-label"></p>
   </div>
   <div class="topbar-right">
@@ -250,14 +250,14 @@
   </div>
 </div>
 
-<footer>Shafa Townhouse Allura &mdash; Dashboard Kas Komplek</footer>
+<footer>Shafa Townhouse Allura &mdash; Dashboard Kas Cluster</footer>
 
 <script>
 const BULAN_NAMA=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const SEMUA_RUMAH=[];
 for(let i=1;i<=10;i++) SEMUA_RUMAH.push('A-'+String(i).padStart(2,'0'));
 for(let i=1;i<=10;i++) SEMUA_RUMAH.push('B-'+String(i).padStart(2,'0'));
-for(let i=1;i<=6;i++) SEMUA_RUMAH.push('C-'+String(i).padStart(2,'0'));
+for(let i=1;i<=5;i++) SEMUA_RUMAH.push('C-'+String(i).padStart(2,'0'));
 
 // Rumah yang secara default berstatus kosong
 const RUMAH_KOSONG_DEFAULT = ['A-08','A-09','A-10','B-02','B-03','B-07','C-04'];
