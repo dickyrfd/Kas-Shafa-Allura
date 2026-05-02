@@ -119,10 +119,12 @@
 <div class="main">
 
   <div class="cards">
-    <div class="card"><div class="lbl">Saldo total kas</div><div class="val purple" id="c-total">Rp 0</div></div>
-    <div class="card"><div class="lbl">Kas masuk bulan ini</div><div class="val green" id="c-masuk">Rp 0</div></div>
-    <div class="card"><div class="lbl">Pengeluaran bulan ini</div><div class="val red" id="c-keluar">Rp 0</div></div>
-    <div class="card"><div class="lbl">Saldo bulan ini</div><div class="val blue" id="c-saldo">Rp 0</div></div>
+    <div class="card" title="Total uang di bendahara (seluruh transaksi)"><div class="lbl">Total Kas &amp; Setara Kas</div><div class="val purple" id="c-total">Rp 0</div></div>
+    <div class="card" title="Saldo tersedia s/d bulan ini, tidak termasuk iuran bulan depan" style="background:var(--blue-bg);border-color:var(--blue);border-width:1.5px;"><div class="lbl" style="color:var(--blue);font-weight:600;">Saldo Aktif</div><div class="val blue" id="c-aktif" style="font-size:22px;">Rp 0</div></div>
+    <div class="card" title="Total titipan iuran bulan depan dan seterusnya"><div class="lbl">Iuran Diterima di Muka</div><div class="val" style="color:var(--purple);font-size:16px" id="c-dimuka">Rp 0</div></div>
+    <div class="card" title="Kas masuk bulan ini"><div class="lbl">Penerimaan Kas Berjalan</div><div class="val green" id="c-masuk">Rp 0</div></div>
+    <div class="card" title="Pengeluaran bulan ini"><div class="lbl">Pengeluaran Kas Berjalan</div><div class="val red" id="c-keluar">Rp 0</div></div>
+    <div class="card" title="Selisih penerimaan dan pengeluaran bulan ini"><div class="lbl">Surplus / (Defisit) Berjalan</div><div class="val" id="c-saldo">Rp 0</div></div>
     <div class="card"><div class="lbl">Iuran terkumpul</div><div class="val" id="c-iuran">0 / 0</div></div>
   </div>
 
@@ -255,7 +257,10 @@ const BULAN_NAMA=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agus
 const SEMUA_RUMAH=[];
 for(let i=1;i<=10;i++) SEMUA_RUMAH.push('A-'+String(i).padStart(2,'0'));
 for(let i=1;i<=10;i++) SEMUA_RUMAH.push('B-'+String(i).padStart(2,'0'));
-for(let i=1;i<=5;i++) SEMUA_RUMAH.push('C-'+String(i).padStart(2,'0'));
+for(let i=1;i<=6;i++) SEMUA_RUMAH.push('C-'+String(i).padStart(2,'0'));
+
+// Rumah yang secara default berstatus kosong
+const RUMAH_KOSONG_DEFAULT = ['A-08','A-09','A-10','B-02','B-03','B-07','C-04'];
 const CAT_COLORS=['#0F6E56','#185FA5','#854F0B','#3B6D11','#993C1D','#534AB7','#993556','#5F5E5A'];
 
 let now=new Date();
@@ -292,6 +297,8 @@ dbRef.on('value', (snapshot) => {
     if(!data.iuran) data.iuran = {};
     if(!data.anggaran) data.anggaran = {};
   }
+  // Pastikan bulan-bulan yang sudah ada menerapkan default kosong
+  // (hanya untuk bulan yang belum pernah diset manual)
   render();
 });
 
@@ -349,14 +356,42 @@ function render(){
   const txs=getTxBulan(); const iuran=getIuranBulan();
   let masukB=0, keluarB=0;
   txs.forEach(t=>{if(t.jenis==='masuk')masukB+=t.jml;else keluarB+=t.jml});
+
+  // Total Kas & Setara Kas = semua transaksi sepanjang waktu
   let totalAll=0;
   data.transaksi.forEach(t=>{if(t.jenis==='masuk')totalAll+=t.jml;else totalAll-=t.jml});
+
+  // Iuran Diterima di Muka = transaksi masuk bertanggal SETELAH akhir bulan ini
+  const akhirBulanIni = new Date(selTahun, selBulan+1, 0); // hari terakhir bulan ini
+  let dimuka=0;
+  data.transaksi.forEach(t=>{
+    if(t.jenis==='masuk'){
+      const d=new Date(t.tgl);
+      if(d > akhirBulanIni) dimuka+=t.jml;
+    }
+  });
+
+  // Saldo Aktif = Total kas - iuran diterima di muka
+  const saldoAktif = totalAll - dimuka;
+
+  // Surplus / Defisit = penerimaan berjalan - pengeluaran berjalan
+  const surplus = masukB - keluarB;
+
   document.getElementById('c-total').textContent=fmt(totalAll);
+  document.getElementById('c-aktif').textContent=fmt(saldoAktif);
+  document.getElementById('c-dimuka').textContent=fmt(dimuka);
   document.getElementById('c-masuk').textContent=fmt(masukB);
   document.getElementById('c-keluar').textContent=fmt(keluarB);
-  document.getElementById('c-saldo').textContent=fmt(masukB-keluarB);
-  const aktif=SEMUA_RUMAH.filter(r=>iuran[r]!=='kosong');
-  const lunas=aktif.filter(r=>iuran[r]==='lunas').length;
+
+  const saldoEl=document.getElementById('c-saldo');
+  saldoEl.textContent = (surplus<0?'(':'') + fmt(Math.abs(surplus)) + (surplus<0?')':'');
+  saldoEl.style.color = surplus>=0 ? 'var(--green)' : 'var(--red)';
+
+  const aktif=SEMUA_RUMAH.filter(r=>{
+    const st = iuran[r] !== undefined ? iuran[r] : (RUMAH_KOSONG_DEFAULT.includes(r) ? 'kosong' : 'pending');
+    return st !== 'kosong';
+  });
+  const lunas=aktif.filter(r=>(iuran[r]||'pending')==='lunas').length;
   document.getElementById('c-iuran').textContent=lunas+' / '+aktif.length;
   const bl=BULAN_NAMA[selBulan]+' '+selTahun;
   document.getElementById('bulan-label').textContent=bl;
@@ -424,7 +459,8 @@ function renderTx(txs){
 function renderIuran(iuran){
   const grid=document.getElementById('iuran-grid');
   grid.innerHTML=SEMUA_RUMAH.map(r=>{
-    const status=iuran[r]||'pending';
+    // Gunakan status dari data, atau default kosong jika ada di daftar, atau pending
+    const status = iuran[r] !== undefined ? iuran[r] : (RUMAH_KOSONG_DEFAULT.includes(r) ? 'kosong' : 'pending');
     const cls=status==='lunas'?'bdg-lunas':status==='kosong'?'bdg-kosong':'bdg-pending';
     const lbl=status==='lunas'?'Lunas':status==='kosong'?'Kosong':'Belum bayar';
     const clickAttr = isAdmin 
@@ -585,11 +621,23 @@ function exportLaporan(){
   const txs=getTxBulan(); const iuran=getIuranBulan();
   let masuk=0, keluar=0; txs.forEach(t=>{if(t.jenis==='masuk')masuk+=t.jml;else keluar+=t.jml});
   let total=0; data.transaksi.forEach(t=>{if(t.jenis==='masuk')total+=t.jml;else total-=t.jml});
-  const aktif=SEMUA_RUMAH.filter(r=>iuran[r]!=='kosong');
-  const lunas=aktif.filter(r=>iuran[r]==='lunas').length;
+
+  const akhirBulanIni = new Date(selTahun, selBulan+1, 0);
+  let dimuka=0;
+  data.transaksi.forEach(t=>{if(t.jenis==='masuk'&&new Date(t.tgl)>akhirBulanIni) dimuka+=t.jml});
+  const saldoAktif = total - dimuka;
+  const surplus = masuk - keluar;
+  const surplusStr = (surplus<0?'(':'') + fmt(Math.abs(surplus)) + (surplus<0?')':'');
+  const surplusColor = surplus>=0 ? '#0F6E56' : '#993C1D';
+
+  const aktif=SEMUA_RUMAH.filter(r=>{
+    const st = iuran[r] !== undefined ? iuran[r] : (RUMAH_KOSONG_DEFAULT.includes(r) ? 'kosong' : 'pending');
+    return st !== 'kosong';
+  });
+  const lunas=aktif.filter(r=>(iuran[r]||'pending')==='lunas').length;
   
   const iuranRows=SEMUA_RUMAH.map(r=>{
-    const st=iuran[r]||'pending';
+    const st = iuran[r] !== undefined ? iuran[r] : (RUMAH_KOSONG_DEFAULT.includes(r) ? 'kosong' : 'pending');
     const lbl=st==='lunas'?'Lunas':st==='kosong'?'Kosong':'Belum bayar';
     const col=st==='lunas'?'#0F6E56':st==='kosong'?'#185FA5':'#854F0B';
     return`<tr><td>${r}</td><td style="color:${col};font-weight:600">${lbl}</td></tr>`;
@@ -610,88 +658,126 @@ function exportLaporan(){
   
   const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Laporan ${BULAN_NAMA[selBulan]} ${selTahun}</title>
   <style>
-  :root {
-    --bg3: #e5e5ea; --text2: #86868b; --red: #ff3b30;
-  }
-  /* Mengatur agar warna background ikut tercetak */
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; font-size: 12px; padding: 24px; color: #222; max-width: 900px; margin: auto; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  :root { --bg3: #e5e5ea; --text2: #86868b; --red: #ff3b30; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; font-size: 12px; padding: 24px; color: #222; max-width: 960px; margin: auto; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   
   .header-container { display: flex; align-items: center; gap: 20px; margin-bottom: 24px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
   .thumbnail { width: 180px; height: auto; border-radius: 8px; object-fit: cover; }
-  .header-text h1 { font-size: 24px; font-weight: bold; margin: 0 0 6px 0; color: #1a1a1a; }
+  .header-text h1 { font-size: 22px; font-weight: bold; margin: 0 0 6px 0; color: #1a1a1a; }
   .header-text p { color: #666; margin: 0; font-size: 13px; }
   
-  h2 { font-size: 16px; font-weight: bold; margin: 28px 0 12px; padding-bottom: 6px; border-bottom: 1px solid #eee; }
+  h2 { font-size: 14px; font-weight: bold; margin: 28px 0 12px; padding-bottom: 6px; border-bottom: 1px solid #eee; text-transform: uppercase; letter-spacing: 0.4px; color: #444; }
   
   table { border-collapse: collapse; width: 100%; margin-bottom: 16px; }
-  th { background: #f5f5f7; padding: 10px 12px; border: 1px solid #ddd; text-align: left; font-size: 11px; color: #666; }
-  td { padding: 10px 12px; border: 1px solid #ddd; font-size: 12px; vertical-align: middle; }
+  th { background: #f5f5f7; padding: 8px 10px; border: 1px solid #ddd; text-align: left; font-size: 11px; color: #666; }
+  td { padding: 8px 10px; border: 1px solid #ddd; font-size: 12px; vertical-align: middle; }
+  tr:nth-child(even) td { background: #fafafa; }
+
+  /* Grid kartu ringkasan 3+3 */
+  .sum-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0 8px; }
+  .sum-grid-bot { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 0 0 20px; }
+  .s { border: 1px solid #ddd; border-radius: 10px; padding: 14px 16px; background: #fff; }
+  .s .l { font-size: 10px; color: #888; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .s .v { font-size: 17px; font-weight: bold; }
+  .s .hint { font-size: 10px; color: #aaa; margin-top: 4px; }
   
-  .sum { display: flex; gap: 16px; margin: 20px 0; flex-wrap: wrap; }
-  .s { border: 1px solid #ddd; border-radius: 12px; padding: 16px; flex: 1; min-width: 130px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-  .s .l { font-size: 11px; color: #666; margin-bottom: 6px; font-weight: 500; }
-  .s .v { font-size: 18px; font-weight: bold; }
-  
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 20px; }
-  .chart-box { text-align: center; border: 1px solid #ddd; padding: 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-  .chart-box h3 { font-size: 13px; margin: 0 0 16px; color: #444; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 16px; }
+  .chart-box { text-align: center; border: 1px solid #ddd; padding: 16px; border-radius: 10px; }
+  .chart-box h3 { font-size: 12px; font-weight: 600; margin: 0 0 12px; color: #444; text-align: left; }
   .chart-box img { max-width: 100%; height: 200px; object-fit: contain; }
   
-  /* Styling Progress Bar untuk Export */
-  .prog-row { margin-bottom: 12px; }
-  .prog-lbl { display: flex; justify-content: space-between; font-size: 11px; font-weight: 500; color: #666; margin-bottom: 6px; }
-  .prog-bar { height: 6px; background: var(--bg3); border-radius: 99px; overflow: hidden; }
+  .prog-row { margin-bottom: 10px; }
+  .prog-lbl { display: flex; justify-content: space-between; font-size: 11px; font-weight: 500; color: #666; margin-bottom: 5px; }
+  .prog-bg { height: 6px; background: #efefef; border-radius: 99px; overflow: hidden; }
   .prog-fill { height: 100%; border-radius: 99px; }
-  .prog-fill.over { background: var(--red) !important; }
+  .prog-fill.over { background: #ff3b30 !important; }
   
   @media print { 
     body { padding: 0; } 
     .s, .chart-box { break-inside: avoid; } 
     h2 { page-break-after: avoid; }
+    .sum-grid, .sum-grid-bot { break-inside: avoid; }
   }
   </style></head><body>
 
   <div class="header-container">
-    <!-- Gambar Thumbnail -->
     <img src="thumbnail-allura.jpg" class="thumbnail" alt="Gerbang Shafa Townhouse Allura">
     <div class="header-text">
-        <h1>Laporan Kas Shafa Townhouse Allura</h1>
-        <p>Periode: ${BULAN_NAMA[selBulan]} ${selTahun} &mdash; Dicetak pada: ${tgl}</p>
+      <h1>Laporan Kas Shafa Townhouse Allura</h1>
+      <p>Periode: ${BULAN_NAMA[selBulan]} ${selTahun} &mdash; Dicetak pada: ${tgl}</p>
     </div>
   </div>
 
-  <div class="sum">
-    <div class="s"><div class="l">Saldo total kas</div><div class="v" style="color:#534AB7">${fmt(total)}</div></div>
-    <div class="s"><div class="l">Kas masuk bulan ini</div><div class="v" style="color:#0F6E56">${fmt(masuk)}</div></div>
-    <div class="s"><div class="l">Pengeluaran bulan ini</div><div class="v" style="color:#993C1D">${fmt(keluar)}</div></div>
-    <div class="s"><div class="l">Iuran terkumpul</div><div class="v">${lunas} / ${aktif.length} rumah</div></div>
+  <h2>Ringkasan Keuangan</h2>
+  <div class="sum-grid">
+    <div class="s">
+      <div class="l">Total Kas &amp; Setara Kas</div>
+      <div class="v" style="color:#534AB7">${fmt(total)}</div>
+      <div class="hint">Total uang di bendahara</div>
+    </div>
+    <div class="s">
+      <div class="l">Saldo Aktif</div>
+      <div class="v" style="color:#185FA5">${fmt(saldoAktif)}</div>
+      <div class="hint">Tersedia s/d bulan ini</div>
+    </div>
+    <div class="s">
+      <div class="l">Iuran Diterima di Muka</div>
+      <div class="v" style="color:#534AB7">${fmt(dimuka)}</div>
+      <div class="hint">Titipan iuran bulan berikutnya</div>
+    </div>
+  </div>
+  <div class="sum-grid-bot">
+    <div class="s">
+      <div class="l">Penerimaan Kas Berjalan</div>
+      <div class="v" style="color:#0F6E56">${fmt(masuk)}</div>
+      <div class="hint">Kas masuk ${BULAN_NAMA[selBulan]}</div>
+    </div>
+    <div class="s">
+      <div class="l">Pengeluaran Kas Berjalan</div>
+      <div class="v" style="color:#993C1D">${fmt(keluar)}</div>
+      <div class="hint">Pengeluaran ${BULAN_NAMA[selBulan]}</div>
+    </div>
+    <div class="s">
+      <div class="l">Surplus / (Defisit) Berjalan</div>
+      <div class="v" style="color:${surplusColor}">${surplusStr}</div>
+      <div class="hint">Selisih bulan ini</div>
+    </div>
+    <div class="s">
+      <div class="l">Iuran Terkumpul</div>
+      <div class="v">${lunas} / ${aktif.length} rumah</div>
+      <div class="hint">${BULAN_NAMA[selBulan]}</div>
+    </div>
   </div>
 
   <div class="grid-2">
-      <div class="chart-box">
-          <h3>Komposisi Pengeluaran</h3>
-          ${imgKeluar ? `<img src="${imgKeluar}">` : '<p style="color:#999;font-size:12px;margin-top:80px;">Belum ada data</p>'}
-      </div>
-      <div class="chart-box">
-          <h3>Pemasukan vs Pengeluaran</h3>
-          ${imgMain ? `<img src="${imgMain}">` : '<p style="color:#999;font-size:12px;margin-top:80px;">Belum ada data</p>'}
-      </div>
+    <div class="chart-box">
+      <h3>Komposisi Pengeluaran</h3>
+      ${imgKeluar ? `<img src="${imgKeluar}">` : '<p style="color:#999;font-size:12px;margin-top:80px;">Belum ada data</p>'}
+    </div>
+    <div class="chart-box">
+      <h3>Pemasukan vs Pengeluaran</h3>
+      ${imgMain ? `<img src="${imgMain}">` : '<p style="color:#999;font-size:12px;margin-top:80px;">Belum ada data</p>'}
+    </div>
   </div>
 
   <h2>Progres Anggaran Pengeluaran</h2>
-  <div style="border: 1px solid #ddd; padding: 20px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+  <div style="border:1px solid #ddd;padding:20px;border-radius:10px;margin-bottom:24px;">
     ${progAreaHTML || '<p style="color:#999;font-size:12px;text-align:center;">Belum ada data</p>'}
   </div>
 
   <h2>Riwayat Transaksi</h2>
-  <table><thead><tr><th>Tanggal</th><th>Keterangan</th><th>Kategori</th><th>Jenis</th><th style="text-align:right">Jumlah</th></tr></thead>
-  <tbody>${txRows||'<tr><td colspan="5" style="text-align:center;color:#999;padding:16px">Tidak ada transaksi bulan ini</td></tr>'}</tbody></table>
+  <table>
+    <thead><tr><th>Tanggal</th><th>Keterangan</th><th>Kategori</th><th>Jenis</th><th style="text-align:right">Jumlah</th></tr></thead>
+    <tbody>${txRows||'<tr><td colspan="5" style="text-align:center;color:#999;padding:16px">Tidak ada transaksi bulan ini</td></tr>'}</tbody>
+  </table>
 
   <h2>Status Iuran Warga</h2>
-  <table style="max-width:400px"><thead><tr><th>Nomor Rumah</th><th>Status Pembayaran</th></tr></thead><tbody>${iuranRows}</tbody></table>
+  <table style="max-width:360px">
+    <thead><tr><th>Nomor Rumah</th><th>Status Pembayaran</th></tr></thead>
+    <tbody>${iuranRows}</tbody>
+  </table>
 
   <script>
-    // Memberikan waktu agar gambar termuat sebelum memicu dialog print
     window.onload = () => { setTimeout(() => { window.print(); }, 500); }
   <\/script></body></html>`;
   
