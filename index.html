@@ -1122,7 +1122,7 @@ function renderTx(txs){
       <td>${tx.ket}</td>
       <td style="color:var(--stone)">${tx.kat}</td>
       <td><span class="bdg ${tx.jenis==='masuk'?'bdg-in':'bdg-out'}">${tx.jenis==='masuk'?'Masuk':'Keluar'}</span></td>
-      <td style="text-align:right;font-weight:600;color:${tx.jenis==='masuk'?'var(--green)':'var(--red)';font-family:'Cormorant Garamond',serif">${fmt(tx.jml)}</td>
+      <td style="text-align:right;font-weight:600;color:${tx.jenis==='masuk'?'var(--green)':'var(--red)'}">${fmt(tx.jml)}</td>
       <td>${buktiHtml}</td>
       <td style="display:flex;gap:4px;flex-wrap:wrap">
         ${isAdmin ? `
