@@ -962,33 +962,42 @@ const firebaseConfig = {
   appId: "1:939143341471:web:f9bc007373b7950e9009aa"
 };
 
-firebase.initializeApp(firebaseConfig);
-const dbRef = firebase.database().ref('shafa_kas_data');
-
 let isAdmin = false;
+let dbRef = null;
 
 let data = {
   transaksi:[], iuran:{},
   anggaran:{Sampah:500000,'Listrik pos':300000,'Kebersihan taman':400000,Maintenance:600000,'Gaji security':2500000}
 };
 
-// Firebase update data saat tersedia
-dbRef.on('value', (snapshot) => {
-  const serverData = snapshot.val();
-  if (serverData) {
-    data = serverData;
-    if(!data.transaksi) data.transaksi = [];
-    if(!data.iuran) data.iuran = {};
-    if(!data.anggaran) data.anggaran = {};
-    render();
+// Inisialisasi Firebase dengan aman — jika gagal, app tetap berjalan offline
+function initFirebase() {
+  try {
+    if (typeof firebase === 'undefined') throw new Error('Firebase SDK belum siap');
+    firebase.initializeApp(firebaseConfig);
+    dbRef = firebase.database().ref('shafa_kas_data');
+    dbRef.on('value', (snapshot) => {
+      try {
+        const serverData = snapshot.val();
+        if (serverData) {
+          data = serverData;
+          if(!data.transaksi) data.transaksi = [];
+          if(!data.iuran) data.iuran = {};
+          if(!data.anggaran) data.anggaran = {};
+          render();
+        }
+      } catch(e) { console.warn('Firebase data error:', e); }
+    }, (error) => {
+      console.warn('Firebase listener error:', error);
+    });
+  } catch(e) {
+    console.warn('Firebase init gagal, mode offline:', e.message);
   }
-}, (error) => {
-  // Firebase error — UI tetap bisa dipakai dengan data lokal
-  console.warn('Firebase error:', error);
-});
+}
 
 function saveData(){
   if(!isAdmin) { alert("Maaf, hanya Admin yang dapat mengubah data."); return; }
+  if(!dbRef) { alert("Tidak ada koneksi ke database."); return; }
   dbRef.set(data);
 }
 
@@ -1434,9 +1443,11 @@ setupFileInput('f-bukti','f-bukti-preview','_fBuktiData');
 setupFileInput('e-bukti','e-bukti-preview','_eBuktiData');
 document.getElementById('f-tgl').value=now.toISOString().split('T')[0];
 
-// Render segera dengan data default agar UI langsung bisa diklik
-// Firebase akan update otomatis saat data dari server tiba
+// Render DULU supaya UI langsung aktif
 initBulanSelect(); initRumahSelect(); render();
+
+// Baru konek Firebase (async, tidak memblok UI)
+initFirebase();
 </script>
 </body>
 </html>
