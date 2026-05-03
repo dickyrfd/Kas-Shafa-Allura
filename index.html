@@ -383,18 +383,24 @@ function render(){
   let totalAll=0;
   data.transaksi.forEach(t=>{if(t.jenis==='masuk')totalAll+=t.jml;else totalAll-=t.jml});
 
-  // Iuran Diterima di Muka = transaksi masuk bertanggal SETELAH akhir bulan ini
-  const akhirBulanIni = new Date(selTahun, selBulan+1, 0); // hari terakhir bulan ini
-  let dimuka=0;
+  // Batas: hari terakhir bulan yang DIPILIH di dropdown
+  const akhirBulanDipilih = new Date(selTahun, selBulan+1, 0, 23, 59, 59);
+
+  // Saldo Aktif = semua masuk s/d akhir bulan dipilih - semua keluar s/d akhir bulan dipilih
+  let saldoAktif = 0;
   data.transaksi.forEach(t=>{
-    if(t.jenis==='masuk'){
-      const d=new Date(t.tgl);
-      if(d > akhirBulanIni) dimuka+=t.jml;
+    const d = new Date(t.tgl);
+    if(d <= akhirBulanDipilih){
+      if(t.jenis==='masuk') saldoAktif += t.jml;
+      else saldoAktif -= t.jml;
     }
   });
 
-  // Saldo Aktif = Total kas - iuran diterima di muka
-  const saldoAktif = totalAll - dimuka;
+  // Iuran Diterima di Muka = transaksi masuk bertanggal SETELAH akhir bulan yang dipilih
+  let dimuka = 0;
+  data.transaksi.forEach(t=>{
+    if(t.jenis==='masuk' && new Date(t.tgl) > akhirBulanDipilih) dimuka += t.jml;
+  });
 
   // Surplus / Defisit = penerimaan berjalan - pengeluaran berjalan
   const surplus = masukB - keluarB;
@@ -644,10 +650,21 @@ function exportLaporan(){
   let masuk=0, keluar=0; txs.forEach(t=>{if(t.jenis==='masuk')masuk+=t.jml;else keluar+=t.jml});
   let total=0; data.transaksi.forEach(t=>{if(t.jenis==='masuk')total+=t.jml;else total-=t.jml});
 
-  const akhirBulanIni = new Date(selTahun, selBulan+1, 0);
-  let dimuka=0;
-  data.transaksi.forEach(t=>{if(t.jenis==='masuk'&&new Date(t.tgl)>akhirBulanIni) dimuka+=t.jml});
-  const saldoAktif = total - dimuka;
+  const akhirBulanDipilih = new Date(selTahun, selBulan+1, 0, 23, 59, 59);
+
+  let saldoAktif = 0;
+  data.transaksi.forEach(t=>{
+    const d = new Date(t.tgl);
+    if(d <= akhirBulanDipilih){
+      if(t.jenis==='masuk') saldoAktif += t.jml;
+      else saldoAktif -= t.jml;
+    }
+  });
+
+  let dimuka = 0;
+  data.transaksi.forEach(t=>{
+    if(t.jenis==='masuk' && new Date(t.tgl) > akhirBulanDipilih) dimuka += t.jml;
+  });
   const surplus = masuk - keluar;
   const surplusStr = (surplus<0?'(':'') + fmt(Math.abs(surplus)) + (surplus<0?')':'');
   const surplusColor = surplus>=0 ? '#0F6E56' : '#993C1D';
