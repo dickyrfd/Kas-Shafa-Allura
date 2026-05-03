@@ -275,6 +275,8 @@
 </style>
 
 <script>
+// Tunggu semua resource (Firebase, Chart.js) selesai load sebelum inisialisasi
+window.addEventListener('load', function() {
 const BULAN_NAMA=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const SEMUA_RUMAH=[];
 for(let i=1;i<=10;i++) SEMUA_RUMAH.push('A-'+String(i).padStart(2,'0'));
@@ -311,6 +313,8 @@ let data = {
   anggaran:{Sampah:500000,'Listrik pos':300000,'Kebersihan taman':400000,Maintenance:600000,'Gaji security':2500000}
 };
 
+let _initialized = false;
+
 dbRef.on('value', (snapshot) => {
   const serverData = snapshot.val();
   if (serverData) {
@@ -319,8 +323,6 @@ dbRef.on('value', (snapshot) => {
     if(!data.iuran) data.iuran = {};
     if(!data.anggaran) data.anggaran = {};
   }
-  // Pastikan bulan-bulan yang sudah ada menerapkan default kosong
-  // (hanya untuk bulan yang belum pernah diset manual)
   render();
 });
 
@@ -841,7 +843,11 @@ document.getElementById('edit-modal').addEventListener('click',function(e){if(e.
 setupFileInput('f-bukti','f-bukti-preview','_fBuktiData');
 setupFileInput('e-bukti','e-bukti-preview','_eBuktiData');
 document.getElementById('f-tgl').value=now.toISOString().split('T')[0];
-initBulanSelect(); initRumahSelect(); render();
+initBulanSelect();
+initRumahSelect();
+// render() dipanggil oleh dbRef.on('value') setelah Firebase load — tidak perlu dipanggil di sini
+
+}); // end window.addEventListener load
 </script>
 </body>
 </html>
