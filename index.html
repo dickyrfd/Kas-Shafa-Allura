@@ -972,6 +972,7 @@ let data = {
   anggaran:{Sampah:500000,'Listrik pos':300000,'Kebersihan taman':400000,Maintenance:600000,'Gaji security':2500000}
 };
 
+// Firebase update data saat tersedia
 dbRef.on('value', (snapshot) => {
   const serverData = snapshot.val();
   if (serverData) {
@@ -979,8 +980,11 @@ dbRef.on('value', (snapshot) => {
     if(!data.transaksi) data.transaksi = [];
     if(!data.iuran) data.iuran = {};
     if(!data.anggaran) data.anggaran = {};
+    render();
   }
-  render();
+}, (error) => {
+  // Firebase error — UI tetap bisa dipakai dengan data lokal
+  console.warn('Firebase error:', error);
 });
 
 function saveData(){
@@ -1429,6 +1433,9 @@ document.getElementById('edit-modal').addEventListener('click',function(e){if(e.
 setupFileInput('f-bukti','f-bukti-preview','_fBuktiData');
 setupFileInput('e-bukti','e-bukti-preview','_eBuktiData');
 document.getElementById('f-tgl').value=now.toISOString().split('T')[0];
+
+// Render segera dengan data default agar UI langsung bisa diklik
+// Firebase akan update otomatis saat data dari server tiba
 initBulanSelect(); initRumahSelect(); render();
 </script>
 </body>
