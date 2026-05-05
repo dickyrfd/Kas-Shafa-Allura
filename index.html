@@ -18,6 +18,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -662,7 +663,7 @@ footer {
 
 <!-- ── TOPBAR ── -->
 <div class="topbar">
-  <div class="topbar-brand" onclick="loginAdmin()" title="Klik untuk Login Admin">
+  <div class="topbar-brand" onclick="loginAdmin()" title="Klik untuk Login / Logout Admin">
     <div class="topbar-monogram">SA</div>
     <div class="topbar-text">
       <h1>Kas Cluster <span class="tag">Dashboard</span></h1>
@@ -828,6 +829,33 @@ footer {
 
 </div><!-- /main -->
 
+<!-- ── LOGIN MODAL ── -->
+<div class="modal-overlay" id="modal-login">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-hdr" style="display:flex;align-items:center;gap:10px">
+      <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--forest),var(--forest-mid));border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:600;color:var(--gold-light);flex-shrink:0">SA</div>
+      Login Admin
+    </div>
+    <p style="font-size:12px;color:var(--stone);margin-bottom:16px">Masuk untuk mengelola transaksi dan data kas cluster.</p>
+    <div class="ff" style="margin-bottom:10px">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="admin@email.com" autocomplete="email">
+    </div>
+    <div class="ff" style="margin-bottom:6px">
+      <label>Password</label>
+      <div style="position:relative">
+        <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+        <button onclick="const i=document.getElementById('login-pass');i.type=i.type==='password'?'text':'password'" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--stone);font-size:12px">👁</button>
+      </div>
+    </div>
+    <p id="login-err" style="font-size:11px;color:var(--red);min-height:16px;margin-bottom:10px"></p>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-prim" id="login-btn" onclick="doLogin()" style="flex:1">Masuk</button>
+      <button class="btn" onclick="document.getElementById('modal-login').classList.remove('open')">Batal</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── EDIT MODAL ── -->
 <div class="modal-overlay" id="edit-modal">
   <div class="modal">
@@ -990,6 +1018,13 @@ function initFirebase() {
     }, (error) => {
       console.warn('Firebase listener error:', error);
     });
+
+    // Auth state listener — update isAdmin otomatis
+    firebase.auth().onAuthStateChanged(user => {
+      isAdmin = !!user;
+      render();
+    });
+
   } catch(e) {
     console.warn('Firebase init gagal, mode offline:', e.message);
   }
@@ -1002,17 +1037,44 @@ function saveData(){
 }
 
 window.loginAdmin = function() {
-  if(isAdmin) { 
-    isAdmin = false; 
-    alert("Telah keluar dari mode Admin."); 
-    render(); return; 
+  if(isAdmin) {
+    firebase.auth().signOut().then(() => {
+      isAdmin = false;
+      render();
+    });
+    return;
   }
-  const pin = prompt("Masukkan PIN Admin:");
-  if(pin === "112233") {
-    isAdmin = true;
-    alert("Berhasil masuk! Anda sekarang bisa menambah dan mengedit transaksi.");
-    render();
-  } else if(pin !== null) { alert("PIN Salah!"); }
+  // Tampilkan modal login
+  document.getElementById('modal-login').classList.add('open');
+}
+
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-err');
+  const btn   = document.getElementById('login-btn');
+  errEl.textContent = '';
+  btn.textContent = 'Masuk...';
+  btn.disabled = true;
+  firebase.auth().signInWithEmailAndPassword(email, pass)
+    .then(() => {
+      document.getElementById('modal-login').classList.remove('open');
+      document.getElementById('login-email').value = '';
+      document.getElementById('login-pass').value = '';
+      btn.textContent = 'Masuk';
+      btn.disabled = false;
+    })
+    .catch(err => {
+      btn.textContent = 'Masuk';
+      btn.disabled = false;
+      if(err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+        errEl.textContent = 'Email atau password salah.';
+      } else if(err.code === 'auth/too-many-requests') {
+        errEl.textContent = 'Terlalu banyak percobaan, coba lagi nanti.';
+      } else {
+        errEl.textContent = 'Login gagal: ' + err.message;
+      }
+    });
 }
 
 function keyB(b,t){return t+'-'+b}
@@ -1436,6 +1498,7 @@ function copyNorek(){
   });
 }
 
+document.getElementById('modal-login').addEventListener('click',function(e){if(e.target===this)document.getElementById('modal-login').classList.remove('open')});
 document.getElementById('modal-lunas').addEventListener('click',function(e){if(e.target===this)tutupModalLunas()});
 document.getElementById('modal-bayar').addEventListener('click',function(e){if(e.target===this)tutupModalBayar()});
 document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)tutupEdit()});
