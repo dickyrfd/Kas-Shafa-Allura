@@ -674,6 +674,8 @@ footer {
     <span class="admin-badge" id="admin-badge">⬡ Admin Mode</span>
     <select id="sel-bulan" style="width:auto;font-size:12px"></select>
     <button class="btn btn-sm btn-gold" onclick="bukaBayar()" style="font-size:11px">💳 Cara Bayar</button>
+    <button class="btn btn-sm" id="btn-backup-json" onclick="backupJSON()" style="display:none" title="Download semua data sebagai file JSON">↓ Backup JSON</button>
+    <button class="btn btn-sm" id="btn-sync-sheets" onclick="syncToSheets()" style="display:none" title="Kirim data ke Google Sheets">⟳ Sync Sheets</button>
     <button class="btn btn-prim btn-sm" onclick="exportLaporan()">↓ Export PDF</button>
   </div>
 </div>
@@ -1162,6 +1164,11 @@ function render(){
   if(formIuran) formIuran.style.display = isAdmin ? 'flex' : 'none';
   const tabTambah = document.getElementById('tab-tambah');
   if(!isAdmin && tabTambah && tabTambah.style.display !== 'none') showTab('transaksi');
+  // Tombol backup hanya muncul saat admin
+  const btnBackup = document.getElementById('btn-backup-json');
+  const btnSheets = document.getElementById('btn-sync-sheets');
+  if(btnBackup) btnBackup.style.display = isAdmin ? 'inline-block' : 'none';
+  if(btnSheets) btnSheets.style.display = isAdmin ? 'inline-block' : 'none';
 }
 
 function renderProgress(txs){
@@ -1367,6 +1374,93 @@ function showTab(name){
 function flash(id){
   const el=document.getElementById(id); el.style.display='inline';
   setTimeout(()=>el.style.display='none',2200);
+}
+
+// ── BACKUP JSON ──
+function backupJSON(){
+  if(!isAdmin) return;
+  const now2 = new Date();
+  const tgl = now2.toISOString().slice(0,10);
+  const jam = now2.toTimeString().slice(0,5).replace(':','-');
+  const filename = `kas-shafa-allura_backup_${tgl}_${jam}.json`;
+
+  const backupData = {
+    meta: {
+      exported_at: now2.toISOString(),
+      exported_by: firebase.auth().currentUser?.email || 'admin',
+      total_transaksi: data.transaksi?.length || 0,
+      app: 'Kas Cluster Shafa Townhouse Allura'
+    },
+    data: data
+  };
+
+  const blob = new Blob([JSON.stringify(backupData, null, 2)], {type: 'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+
+  // Log backup ke Firebase
+  try {
+    const logRef = firebase.database().ref('backup_log');
+    logRef.push({ at: now2.toISOString(), by: firebase.auth().currentUser?.email || 'admin' });
+  } catch(e) {}
+}
+
+// ── SYNC TO GOOGLE SHEETS ──
+const SHEETS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbxh5H8mRKetgoWIjp6otvWMpn2m2UIaxb9M9vH5t8BQ9Qhukw7xH0_QFKBSt-2NwZlu/exec';
+
+function syncToSheets(){
+  if(!isAdmin) return;
+  if(SHEETS_WEBHOOK_URL === 'GANTI_DENGAN_URL_APPS_SCRIPT_ANDA'){
+    alert('⚠️ URL Google Apps Script belum diatur.\nIkuti panduan setup yang sudah diberikan, lalu ganti nilai SHEETS_WEBHOOK_URL di kode.');
+    return;
+  }
+  const btn = document.getElementById('btn-sync-sheets');
+  const origText = btn.textContent;
+  btn.textContent = '⟳ Mengirim...';
+  btn.disabled = true;
+
+  // Flatten transaksi jadi array untuk Sheets
+  const rows = (data.transaksi || []).map(tx => ([
+    tx.tgl, tx.ket, tx.kat,
+    tx.jenis === 'masuk' ? tx.jml : 0,
+    tx.jenis === 'keluar' ? tx.jml : 0,
+    tx.jenis
+  ]));
+
+  // Flatten iuran jadi summary per bulan
+  const iuranRows = [];
+  Object.keys(data.iuran || {}).forEach(key => {
+    const [tahun, bulan] = key.split('-');
+    const bulanNama = BULAN_NAMA[parseInt(bulan)] + ' ' + tahun;
+    Object.keys(data.iuran[key]).forEach(rumah => {
+      iuranRows.push([bulanNama, rumah, data.iuran[key][rumah]]);
+    });
+  });
+
+  const payload = {
+    transaksi: rows,
+    iuran: iuranRows,
+    anggaran: Object.entries(data.anggaran || {}),
+    synced_at: new Date().toISOString()
+  };
+
+  fetch(SHEETS_WEBHOOK_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(() => {
+    btn.textContent = '✓ Tersinkron!';
+    setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 2500);
+  })
+  .catch(err => {
+    btn.textContent = origText;
+    btn.disabled = false;
+    alert('Gagal sync: ' + err.message);
+  });
 }
 
 function exportLaporan(){
