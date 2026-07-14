@@ -1094,8 +1094,25 @@ function populateKatSelect(id){
 
 function initBulanSelect(){
   const sel=document.getElementById('sel-bulan'); sel.innerHTML='';
-  for(let i=0;i<12;i++){const o=document.createElement('option');o.value=i;o.textContent=BULAN_NAMA[i]+' '+selTahun;if(i===selBulan)o.selected=true;sel.appendChild(o)}
-  sel.onchange=()=>{selBulan=parseInt(sel.value);render()}
+  const TAHUN_MULAI = 2025; // ganti sesuai kapan data pertama kali dicatat
+  const TAHUN_AKHIR = selTahun + 1; // tambahkan 1 tahun ke depan, atau ganti angka sesuai kebutuhan
+
+  for(let th=TAHUN_MULAI; th<=TAHUN_AKHIR; th++){
+    for(let i=0;i<12;i++){
+      const o=document.createElement('option');
+      o.value = th+'-'+i;
+      o.textContent = BULAN_NAMA[i]+' '+th;
+      if(i===selBulan && th===selTahun) o.selected=true;
+      sel.appendChild(o);
+    }
+  }
+
+  sel.onchange=()=>{
+    const [th, bl] = sel.value.split('-');
+    selTahun = parseInt(th);
+    selBulan = parseInt(bl);
+    render();
+  }
 }
 
 function initRumahSelect(){
