@@ -892,7 +892,7 @@ footer {
         <span style="font-size:11px;color:var(--stone);text-transform:uppercase;letter-spacing:0.8px">Jumlah Iuran</span>
         <div style="display:flex;align-items:center;gap:6px">
           <span style="font-size:11px;color:var(--stone)">Rp</span>
-          <input type="number" id="lunas-nominal" value="40000" style="width:90px;font-size:13px;font-weight:600;text-align:right;padding:4px 8px">
+          <input type="number" id="lunas-nominal" value="185000" style="width:90px;font-size:13px;font-weight:600;text-align:right;padding:4px 8px">
         </div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
@@ -1559,7 +1559,7 @@ function bukaModalLunas(rumah){
   _lunasRumah = rumah;
   document.getElementById('lunas-rumah-label').textContent = 'Rumah ' + rumah;
   document.getElementById('lunas-tgl').value = now.toISOString().split('T')[0];
-  document.getElementById('lunas-nominal').value = 40000;
+  document.getElementById('lunas-nominal').value = 185000;
   document.getElementById('modal-lunas').classList.add('open');
 }
 
@@ -1570,7 +1570,7 @@ function tutupModalLunas(){
 
 function konfirmasiLunas(){
   if(!_lunasRumah || !isAdmin) return;
-  const nominal = parseFloat(document.getElementById('lunas-nominal').value) || 40000;
+  const nominal = parseFloat(document.getElementById('lunas-nominal').value) || 185000;
   const tgl = document.getElementById('lunas-tgl').value;
   if(!tgl){ alert('Isi tanggal terlebih dahulu.'); return; }
   data.transaksi.unshift({ tgl: tgl, jenis: 'masuk', ket: 'Iuran ' + _lunasRumah + ' — ' + BULAN_NAMA[selBulan] + ' ' + selTahun, kat: 'Iuran bulanan', jml: nominal, bukti: null });
