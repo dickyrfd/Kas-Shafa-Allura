@@ -1623,5 +1623,357 @@ initBulanSelect(); initRumahSelect(); render();
 // Baru konek Firebase (async, tidak memblok UI)
 initFirebase();
 </script>
+
+<!-- ════════════════════════════════════════════════════════════════
+     FITUR TAMBAHAN: PEMBUAT INVOICE IPL (khusus Admin)
+     Blok ini berdiri sendiri; tidak mengubah kode di atasnya.
+     Cara hapus: hapus seluruh blok dari komentar ini sampai
+     komentar "AKHIR FITUR INVOICE".
+     ════════════════════════════════════════════════════════════════ -->
+<style>
+.inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:6px;margin-top:6px}
+.inv-chk{display:flex;align-items:center;gap:6px;font-size:12px;padding:6px 8px;border:1px solid var(--border-subtle);border-radius:var(--radius);cursor:pointer;background:var(--warm-white);color:var(--ink);user-select:none}
+.inv-chk input{width:auto;margin:0;accent-color:var(--gold)}
+.inv-chk.on{border-color:var(--gold);background:var(--gold-pale)}
+.inv-box{border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;background:var(--ivory)}
+.inv-box-t{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--stone);margin-bottom:8px;font-weight:600}
+.inv-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+.inv-mini{font-size:11px;padding:3px 9px}
+.inv-modal{max-width:640px;max-height:90vh;overflow-y:auto}
+.inv-sum{font-size:12px;color:var(--stone);margin:2px 0 12px}
+.inv-sum b{color:var(--charcoal)}
+</style>
+
+<div class="modal-overlay" id="modal-invoice">
+  <div class="modal inv-modal">
+    <div class="modal-hdr">Buat Invoice Tagihan IPL</div>
+
+    <div class="inv-box">
+      <div class="inv-box-t">1. Pilih Rumah yang Ditagih</div>
+      <div class="inv-row">
+        <button type="button" class="btn btn-sm inv-mini" onclick="invPilihRumah('all')">Pilih semua</button>
+        <button type="button" class="btn btn-sm inv-mini" onclick="invPilihRumah('none')">Kosongkan</button>
+        <button type="button" class="btn btn-sm inv-mini" onclick="invPilihRumah('default')">Rumah aset developer</button>
+      </div>
+      <div class="inv-grid" id="inv-rumah"></div>
+    </div>
+
+    <div class="inv-box">
+      <div class="inv-box-t">2. Pilih Bulan</div>
+      <div class="inv-row">
+        <select id="inv-tahun" style="width:auto;font-size:12px" onchange="invRenderBulan()"></select>
+        <button type="button" class="btn btn-sm inv-mini" onclick="invPilihBulan('tahun')">Semua bulan tahun ini</button>
+        <button type="button" class="btn btn-sm inv-mini" onclick="invPilihBulan('none')">Kosongkan semua</button>
+      </div>
+      <div class="inv-grid" id="inv-bulan"></div>
+    </div>
+
+    <div class="inv-box">
+      <div class="inv-box-t">3. Tarif &amp; Dokumen</div>
+      <div class="fg">
+        <div class="ff"><label>Tarif IPL / rumah / bulan (Rp)</label><input type="number" id="inv-tarif" value="160000" oninput="invRingkasan()"></div>
+        <div class="ff"><label>Batas bayar (tanggal tiap bulan)</label><input type="number" id="inv-due" value="4" min="1" max="28"></div>
+        <div class="ff"><label>Tanggal invoice</label><input type="date" id="inv-tgl" onchange="invUpdNomor()"></div>
+        <div class="ff"><label>Nomor urut surat (AAA)</label><input type="number" id="inv-urut" value="1" min="1" oninput="invUpdNomor()"></div>
+        <div class="ff" style="grid-column:1/-1"><label>Nomor invoice</label><input type="text" id="inv-nomor" readonly style="font-weight:600"></div>
+      </div>
+    </div>
+
+    <div class="inv-box">
+      <div class="inv-box-t">4. Penerima</div>
+      <div class="fg">
+        <div class="ff" style="grid-column:1/-1"><label>Nama</label><input type="text" id="inv-p-nama" value="Manajemen Platinum Land"></div>
+        <div class="ff" style="grid-column:1/-1"><label>Jabatan / keterangan</label><input type="text" id="inv-p-ket" value="Pengembang Perumahan Shafa Townhouse Allura Nanggewer Cibinong"></div>
+        <div class="ff" style="grid-column:1/-1"><label>Alamat</label><textarea id="inv-p-alamat" rows="2" style="width:100%;resize:vertical">Ruko Orchard, Walk C, No. 19, Jl. Bogor Nirwana Residence Mulyaharja, Kota Bogor, Jawa Barat 16135</textarea></div>
+      </div>
+    </div>
+
+    <div class="inv-box">
+      <div class="inv-box-t">5. Pembayaran &amp; Penandatangan</div>
+      <div class="fg">
+        <div class="ff"><label>Bank</label><input type="text" id="inv-bank" value="Bank Mandiri"></div>
+        <div class="ff"><label>No. Rekening</label><input type="text" id="inv-norek" value="1310024631345"></div>
+        <div class="ff" style="grid-column:1/-1"><label>Atas Nama</label><input type="text" id="inv-an" value="Rizki Fadillah"></div>
+        <div class="ff"><label>Ketua Paguyuban</label><input type="text" id="inv-ketua" value="Asy Zamal Khaq"></div>
+        <div class="ff"><label>Bendahara Paguyuban</label><input type="text" id="inv-bendahara" value="Rizki Fadillah"></div>
+        <div class="ff"><label>Kota penandatanganan</label><input type="text" id="inv-kota" value="Cibinong"></div>
+      </div>
+    </div>
+
+    <div class="inv-sum" id="inv-ringkasan"></div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-prim" onclick="invBuat()">🧾 Buat Invoice (PDF)</button>
+      <button class="btn" onclick="invTutup()">Batal</button>
+    </div>
+    <p style="font-size:11px;color:var(--dust);margin-top:10px">Invoice terbuka di tab baru. Pada dialog cetak, pilih <b>Save as PDF</b> / <b>Simpan sebagai PDF</b>.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  // ── Pengaturan default (ubah di sini bila perlu) ──
+  var INV_RUMAH_DEFAULT = ['B-02','B-03','B-07'];   // rumah yang masih aset developer
+  var INV_LS_KEY = 'shafa_invoice_pref_v1';
+  var ROMAWI = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+
+  var selRumah = {};   // {'B-02':true}
+  var selBulanSet = {}; // {'2026-9':true}  (tahun-indeksBulan, Jan=0)
+  var sudahInit = false;
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function rp(n){ return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
+  function pad(n,l){ n=String(n); while(n.length<l) n='0'+n; return n; }
+  function hariIni(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1,2)+'-'+pad(d.getDate(),2); }
+  function tglPanjang(iso){ var p=iso.split('-'); return parseInt(p[2],10)+' '+BULAN_NAMA[parseInt(p[1],10)-1]+' '+p[0]; }
+
+  // ── Terbilang (Bahasa Indonesia) ──
+  function terbilang(n){
+    n = Math.floor(Math.abs(n));
+    var s = ['','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','sebelas'];
+    function t(x){
+      if(x<12) return s[x];
+      if(x<20) return t(x-10)+' belas';
+      if(x<100) return t(Math.floor(x/10))+' puluh'+(x%10?' '+t(x%10):'');
+      if(x<200) return 'seratus'+(x-100?' '+t(x-100):'');
+      if(x<1000) return t(Math.floor(x/100))+' ratus'+(x%100?' '+t(x%100):'');
+      if(x<2000) return 'seribu'+(x-1000?' '+t(x-1000):'');
+      if(x<1e6) return t(Math.floor(x/1000))+' ribu'+(x%1000?' '+t(x%1000):'');
+      if(x<1e9) return t(Math.floor(x/1e6))+' juta'+(x%1e6?' '+t(x%1e6):'');
+      if(x<1e12) return t(Math.floor(x/1e9))+' miliar'+(x%1e9?' '+t(x%1e9):'');
+      return String(x);
+    }
+    return n===0 ? 'nol' : t(n);
+  }
+
+  // ── Simpan / muat preferensi (aman jika localStorage tidak tersedia) ──
+  var FIELDS = ['inv-tarif','inv-due','inv-urut','inv-p-nama','inv-p-ket','inv-p-alamat','inv-bank','inv-norek','inv-an','inv-ketua','inv-bendahara','inv-kota'];
+  function muatPref(){
+    try{
+      var raw = localStorage.getItem(INV_LS_KEY); if(!raw) return;
+      var p = JSON.parse(raw);
+      FIELDS.forEach(function(id){ if(p[id]!==undefined && $(id)) $(id).value = p[id]; });
+    }catch(e){}
+  }
+  function simpanPref(){
+    try{
+      var p = {}; FIELDS.forEach(function(id){ p[id] = $(id).value; });
+      localStorage.setItem(INV_LS_KEY, JSON.stringify(p));
+    }catch(e){}
+  }
+
+  // ── Nomor invoice: AAA/SHFA/<bulan romawi>/<tahun> ──
+  window.invUpdNomor = function(){
+    var tgl = $('inv-tgl').value || hariIni();
+    var p = tgl.split('-');
+    var urut = parseInt($('inv-urut').value,10) || 1;
+    $('inv-nomor').value = pad(urut,3)+'/SHFA/'+ROMAWI[parseInt(p[1],10)-1]+'/'+p[0];
+  };
+
+  // ── Pilih rumah ──
+  function renderRumah(){
+    var box = $('inv-rumah'); box.innerHTML = '';
+    SEMUA_RUMAH.forEach(function(r){
+      var lb = document.createElement('label');
+      lb.className = 'inv-chk' + (selRumah[r] ? ' on' : '');
+      lb.innerHTML = '<input type="checkbox"'+(selRumah[r]?' checked':'')+'> '+esc(r);
+      lb.firstChild.addEventListener('change', function(e){
+        if(e.target.checked) selRumah[r]=true; else delete selRumah[r];
+        lb.classList.toggle('on', e.target.checked);
+        invRingkasan();
+      });
+      box.appendChild(lb);
+    });
+  }
+  window.invPilihRumah = function(mode){
+    selRumah = {};
+    if(mode==='all') SEMUA_RUMAH.forEach(function(r){ selRumah[r]=true; });
+    if(mode==='default') INV_RUMAH_DEFAULT.forEach(function(r){ if(SEMUA_RUMAH.indexOf(r)>-1) selRumah[r]=true; });
+    renderRumah(); invRingkasan();
+  };
+
+  // ── Pilih bulan ──
+  window.invRenderBulan = function(){
+    var th = parseInt($('inv-tahun').value,10);
+    var box = $('inv-bulan'); box.innerHTML = '';
+    BULAN_NAMA.forEach(function(nm,i){
+      var key = th+'-'+i;
+      var lb = document.createElement('label');
+      lb.className = 'inv-chk' + (selBulanSet[key] ? ' on' : '');
+      lb.innerHTML = '<input type="checkbox"'+(selBulanSet[key]?' checked':'')+'> '+esc(nm);
+      lb.firstChild.addEventListener('change', function(e){
+        if(e.target.checked) selBulanSet[key]=true; else delete selBulanSet[key];
+        lb.classList.toggle('on', e.target.checked);
+        invRingkasan();
+      });
+      box.appendChild(lb);
+    });
+    invRingkasan();
+  };
+  window.invPilihBulan = function(mode){
+    var th = parseInt($('inv-tahun').value,10);
+    if(mode==='none') selBulanSet = {};
+    if(mode==='tahun') for(var i=0;i<12;i++) selBulanSet[th+'-'+i]=true;
+    invRenderBulan();
+  };
+
+  function bulanTerpilih(){
+    return Object.keys(selBulanSet).map(function(k){ var p=k.split('-'); return {th:parseInt(p[0],10), bl:parseInt(p[1],10)}; })
+      .sort(function(a,b){ return a.th-b.th || a.bl-b.bl; });
+  }
+  function rumahTerpilih(){ return SEMUA_RUMAH.filter(function(r){ return selRumah[r]; }); }
+
+  window.invRingkasan = function(){
+    var r = rumahTerpilih().length, b = bulanTerpilih().length;
+    var tarif = parseFloat($('inv-tarif').value) || 0;
+    $('inv-ringkasan').innerHTML = 'Ringkasan: <b>'+r+'</b> rumah × <b>'+b+'</b> bulan × '+rp(tarif)+' = <b>'+rp(r*b*tarif)+'</b>';
+  };
+
+  // ── Buka / tutup modal (hanya admin) ──
+  window.invBuka = function(){
+    if(!isAdmin){ alert('Maaf, menu invoice hanya tersedia untuk Admin.'); return; }
+    if(!$('inv-tgl').value) $('inv-tgl').value = hariIni();
+    // isi pilihan tahun
+    var sel = $('inv-tahun'); var cur = sel.value; sel.innerHTML = '';
+    var y = new Date().getFullYear();
+    for(var th=y-1; th<=y+2; th++){ var o=document.createElement('option'); o.value=th; o.textContent=th; sel.appendChild(o); }
+    sel.value = cur || String(selTahun);
+    if(!sel.value) sel.value = String(y);
+    if(!sudahInit){   // pembukaan pertama: pilih rumah aset developer & bulan berjalan sebagai titik awal
+      sudahInit = true;
+      INV_RUMAH_DEFAULT.forEach(function(r){ if(SEMUA_RUMAH.indexOf(r)>-1) selRumah[r]=true; });
+      selBulanSet[selTahun+'-'+selBulan] = true;
+    }
+    renderRumah(); invRenderBulan(); invUpdNomor(); invRingkasan();
+    $('modal-invoice').classList.add('open');
+  };
+  window.invTutup = function(){ $('modal-invoice').classList.remove('open'); };
+
+  // ── Bangun dokumen invoice & buka untuk dicetak ──
+  window.invBuat = function(){
+    if(!isAdmin){ alert('Maaf, menu invoice hanya tersedia untuk Admin.'); return; }
+    var rumah = rumahTerpilih(), bulan = bulanTerpilih();
+    if(!rumah.length){ alert('Pilih minimal satu rumah.'); return; }
+    if(!bulan.length){ alert('Pilih minimal satu bulan.'); return; }
+    var tarif = parseFloat($('inv-tarif').value);
+    if(!(tarif>0)){ alert('Isi tarif IPL dengan benar.'); return; }
+    var due = parseInt($('inv-due').value,10); if(!(due>=1 && due<=28)) due = 4;
+    var tgl = $('inv-tgl').value || hariIni();
+    invUpdNomor();
+    simpanPref();
+
+    var nomor = $('inv-nomor').value;
+    var daftarRumah = rumah.join(', ');
+    var perBulan = rumah.length * tarif;
+    var total = perBulan * bulan.length;
+    var awal = BULAN_NAMA[bulan[0].bl]+' '+bulan[0].th, akhir = BULAN_NAMA[bulan[bulan.length-1].bl]+' '+bulan[bulan.length-1].th;
+    var periodeTeks = bulan.length===1 ? awal : ((bulan[0].th===bulan[bulan.length-1].th ? BULAN_NAMA[bulan[0].bl] : awal)+' sampai dengan '+akhir);
+    var kontigu = bulan.every(function(b,i){ if(i===0) return true; var p=bulan[i-1]; return (p.th*12+p.bl)+1===(b.th*12+b.bl); });
+    if(!kontigu) periodeTeks = bulan.map(function(b){ return BULAN_NAMA[b.bl]+' '+b.th; }).join(', ');
+
+    var baris = bulan.map(function(b,i){
+      return '<tr><td class="c">'+(i+1)+'</td><td>'+esc(BULAN_NAMA[b.bl]+' '+b.th)+'</td><td>'+esc(daftarRumah)+'</td>'+
+        '<td class="c">'+rumah.length+'</td><td class="r">'+rp(tarif)+'</td><td class="r">'+rp(perBulan)+'</td>'+
+        '<td class="c">'+due+' '+esc(BULAN_NAMA[b.bl]+' '+b.th)+'</td></tr>';
+    }).join('');
+
+    var html = '<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><title>Invoice '+esc(nomor)+'</title><style>'+
+      '@page{size:A4;margin:14mm 18mm}'+
+      '*{box-sizing:border-box}body{font-family:Helvetica,Arial,sans-serif;font-size:11pt;color:#111;line-height:1.45;margin:0}'+
+      '.org{text-align:center;color:#185FA5;font-size:17pt;font-weight:700;letter-spacing:.3px}'+
+      '.sub{text-align:center;color:#555;font-size:9.5pt;margin-bottom:6px}'+
+      'hr{border:0;border-top:2px solid #185FA5;margin:6px 0 14px}'+
+      'h1{text-align:center;font-size:15pt;margin:0}.h2{text-align:center;color:#555;font-size:10.5pt;margin-bottom:14px}'+
+      '.meta td{padding:1px 8px 1px 0;vertical-align:top;font-size:10.5pt}'+
+      'p{margin:6px 0;text-align:justify}'+
+      'table.t{width:100%;border-collapse:collapse;margin:10px 0 6px;font-size:9.5pt}'+
+      'table.t th{background:#185FA5;color:#fff;padding:6px 5px;border:1px solid #9fb3c8;text-align:center}'+
+      'table.t td{padding:6px 6px;border:1px solid #b8c4d0}.c{text-align:center}.r{text-align:right;white-space:nowrap}'+
+      'table.t tr.tot td{background:#eaf1f8;font-weight:700}'+
+      '.pay{background:#eaf1f8;border:1px solid #b8c4d0;padding:8px 12px;margin:12px 0}.pay td{padding:1px 10px 1px 0;font-size:10.5pt}'+
+      '.sig{width:100%;margin-top:14px;text-align:center;page-break-inside:avoid}.sig td{width:50%;vertical-align:top}'+
+      '.sp{height:62px}'+
+      '@media print{.noprint{display:none}}'+
+      '.bar{position:fixed;top:0;left:0;right:0;background:#185FA5;color:#fff;padding:8px 14px;font-size:12px;display:flex;gap:10px;align-items:center}'+
+      '.bar button{padding:5px 12px;border:0;border-radius:4px;cursor:pointer;font-weight:600}'+
+      '@media screen{body{padding:56px 24px 24px;max-width:820px;margin:0 auto}}'+
+      '</style></head><body>'+
+      '<div class="bar noprint"><span>Pratinjau invoice — pilih <b>Save as PDF</b> pada dialog cetak.</span><button onclick="window.print()">Cetak / Simpan PDF</button></div>'+
+      '<div class="org">PAGUYUBAN SHAFA TOWNHOUSE ALLURA</div>'+
+      '<div class="sub">Shafa Townhouse Allura &middot; Nanggewer, Cibinong</div><hr>'+
+      '<h1>INVOICE</h1><div class="h2">Tagihan Iuran Pengelolaan Lingkungan (IPL)</div>'+
+      '<table class="meta"><tr><td>Nomor</td><td>: <b>'+esc(nomor)+'</b></td></tr>'+
+      '<tr><td>Tanggal</td><td>: '+esc(tglPanjang(tgl))+'</td></tr>'+
+      '<tr><td>Perihal</td><td>: Tagihan IPL unit milik pengembang, periode '+esc(periodeTeks)+'</td></tr></table>'+
+      '<p style="margin-top:12px">Kepada Yth.<br><b>'+esc($('inv-p-nama').value)+'</b><br>'+esc($('inv-p-ket').value)+'<br>'+esc($('inv-p-alamat').value).replace(/\n/g,'<br>')+'</p>'+
+      '<p style="margin-top:12px">Dengan hormat,</p>'+
+      '<p>Sehubungan dengan masih adanya unit rumah di Shafa Townhouse Allura yang berstatus aset '+esc($('inv-p-nama').value)+', bersama ini kami sampaikan tagihan Iuran Pengelolaan Lingkungan (IPL) untuk unit <b>'+esc(daftarRumah)+'</b> periode <b>'+esc(periodeTeks)+'</b> dengan rincian sebagai berikut:</p>'+
+      '<table class="t"><thead><tr><th style="width:5%">No</th><th>Periode</th><th>Unit</th><th style="width:7%">Jml Unit</th><th>Tarif / Unit / Bulan</th><th>Jumlah</th><th>Batas Pembayaran</th></tr></thead><tbody>'+baris+
+      '<tr class="tot"><td colspan="5">TOTAL TAGIHAN</td><td class="r">'+rp(total)+'</td><td></td></tr></tbody></table>'+
+      '<p>Terbilang: <b><i>'+esc(terbilang(total).replace(/^./,function(c){return c.toUpperCase();}))+' rupiah</i></b></p>'+
+      '<div class="pay"><b>Informasi Pembayaran</b><table><tr><td>Bank</td><td>: '+esc($('inv-bank').value)+'</td></tr>'+
+      '<tr><td>No. Rekening</td><td>: <b>'+esc($('inv-norek').value)+'</b></td></tr>'+
+      '<tr><td>Atas Nama</td><td>: '+esc($('inv-an').value)+'</td></tr></table></div>'+
+      '<p><b>Ketentuan:</b><br>1. Pembayaran dilakukan paling lambat tanggal '+due+' setiap awal bulan berjalan.<br>'+
+      '2. Mohon bukti transfer dikirimkan kepada Bendahara Paguyuban sebagai konfirmasi pembayaran.</p>'+
+      '<p>Demikian invoice ini kami sampaikan. Atas perhatian dan kerja samanya, kami ucapkan terima kasih.</p>'+
+      '<table class="sig"><tr><td colspan="2">'+esc($('inv-kota').value)+', '+esc(tglPanjang(tgl))+'<br>Hormat kami,</td></tr>'+
+      '<tr><td>Ketua Paguyuban</td><td>Bendahara Paguyuban</td></tr>'+
+      '<tr><td class="sp"></td><td class="sp"></td></tr>'+
+      '<tr><td><b><u>'+esc($('inv-ketua').value)+'</u></b></td><td><b><u>'+esc($('inv-bendahara').value)+'</u></b></td></tr></table>'+
+      '</body></html>';
+
+    var w = window.open('', '_blank');
+    if(!w){ alert('Pop-up diblokir browser. Izinkan pop-up untuk situs ini, lalu coba lagi.'); return; }
+    w.document.write(html); w.document.close();
+    setTimeout(function(){ try{ w.focus(); w.print(); }catch(e){} }, 600);
+
+    // naikkan nomor urut untuk invoice berikutnya
+    $('inv-urut').value = (parseInt($('inv-urut').value,10)||1) + 1;
+    invUpdNomor(); simpanPref();
+    invTutup();
+  };
+
+  // ── Tombol di topbar: hanya tampil saat admin ──
+  function pasangTombol(){
+    if($('btn-buat-invoice')) return;
+    var bar = document.querySelector('.topbar-right'); if(!bar) return;
+    var b = document.createElement('button');
+    b.className = 'btn btn-sm btn-gold'; b.id = 'btn-buat-invoice';
+    b.style.display = 'none'; b.style.fontSize = '11px';
+    b.title = 'Buat invoice tagihan IPL (khusus Admin)';
+    b.textContent = '🧾 Buat Invoice';
+    b.addEventListener('click', invBuka);
+    var exp = null;
+    bar.querySelectorAll('button').forEach(function(x){ if((x.getAttribute('onclick')||'').indexOf('exportLaporan')>-1) exp = x; });
+    if(exp) bar.insertBefore(b, exp); else bar.appendChild(b);
+  }
+  function sinkronUI(){
+    var b = $('btn-buat-invoice');
+    if(b) b.style.display = isAdmin ? 'inline-block' : 'none';
+    if(!isAdmin) invTutup();   // jika logout saat modal terbuka
+  }
+
+  pasangTombol();
+  muatPref();
+  $('modal-invoice').addEventListener('click', function(e){ if(e.target===this) invTutup(); });
+
+  // Sambungkan ke render() yang sudah ada tanpa mengubahnya:
+  // render() dipanggil ulang setiap login/logout, sehingga status admin selalu tersinkron.
+  var _renderAsli = window.render;
+  if(typeof _renderAsli === 'function'){
+    window.render = function(){
+      var hasil = _renderAsli.apply(this, arguments);
+      try{ sinkronUI(); }catch(e){}
+      return hasil;
+    };
+  }
+  sinkronUI();
+})();
+</script>
+<!-- AKHIR FITUR INVOICE -->
 </body>
 </html>
